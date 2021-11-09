@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+from typing import Optional
 
 import tensorflow as tf
 
@@ -57,6 +58,20 @@ class DataLoader(object):
     """
     self._dataset = dataset
     self._size = size
+
+  @property
+  def size(self) -> Optional[int]:
+    """Returns the size of the dataset.
+
+    Note that this function may return None becuase the exact size of the
+    dataset isn't a necessary parameter to create an instance of this class,
+    and tf.data.Dataset donesn't support a function to get the length directly
+    since it's lazy-loaded and may be infinite.
+    In most cases, however, when an instance of this class is created by helper
+    functions like 'from_folder', the size of the dataset will be preprocessed,
+    and this function can return an int representing the size of the dataset.
+    """
+    return self._size
 
   def gen_dataset(self,
                   batch_size=1,
@@ -99,7 +114,9 @@ class DataLoader(object):
         # TODO(wangtz): Do we want to do shuffle before / after repeat?
         # Shuffle after repeat will give a more randomized dataset and mix the
         # epoch boundary: https://www.tensorflow.org/guide/data
-        ds = ds.shuffle(buffer_size=min(self._size, buffer_size))
+        if self._size:
+          buffer_size = min(self._size, buffer_size)
+        ds = ds.shuffle(buffer_size=buffer_size)
 
     ds = ds.batch(batch_size, drop_remainder=drop_remainder)
     ds = ds.prefetch(tf.data.AUTOTUNE)

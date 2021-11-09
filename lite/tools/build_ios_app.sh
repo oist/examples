@@ -26,17 +26,8 @@ WORKSPACE_EXT=".xcworkspace"
 # Keep a list of iOS apps which should be excluded from the CI builds.
 SKIPPED_BUILDS="
 gesture_classification/ios
+classification_by_retrieval/ios
 "
-
-function install_helper_tools {
-  if ! [ -x "$(command -v jq)" ]; then
-    brew install jq
-  fi
-
-  if ! [ -x "$(command -v xcpretty)" ]; then
-    sudo gem install xcpretty
-  fi
-}
 
 function build_ios_example {
   # Check if this directory appears in the skipped builds list.
@@ -102,5 +93,4 @@ function build_ios_example {
   echo
 }
 
-install_helper_tools
 build_ios_example "$1"
