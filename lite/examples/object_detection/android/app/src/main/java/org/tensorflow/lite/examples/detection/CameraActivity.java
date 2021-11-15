@@ -54,7 +54,7 @@ import java.nio.ByteBuffer;
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
 
-import jp.oist.abcvlib.tests.BackAndForthService;
+//import jp.oist.abcvlib.tests.BackAndForthService;
 
 public abstract class CameraActivity extends AppCompatActivity
     implements OnImageAvailableListener,
@@ -91,7 +91,7 @@ public abstract class CameraActivity extends AppCompatActivity
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
-    startService(new Intent(this, BackAndForthService.class));
+    startService(new Intent(this, PuckMountControllerService.class));
     LOGGER.d("onCreate " + this);
     super.onCreate(null);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

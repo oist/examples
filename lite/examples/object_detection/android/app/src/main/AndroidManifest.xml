@@ -27,7 +27,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name="jp.oist.abcvlib.tests.BackAndForthService" />
+        <service android:name=".PuckMountControllerService" />
 
     </application>
 </manifest>
