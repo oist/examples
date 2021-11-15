@@ -41,6 +41,8 @@ import android.os.Trace;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.appcompat.widget.Toolbar;
+
+import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.View;
@@ -89,7 +91,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private ImageView plusImageView, minusImageView;
   private SwitchCompat apiSwitchCompat;
   private TextView threadsTextView;
-  private PuckMountControllerService puckMountControllerService;
+  protected PuckMountControllerService puckMountControllerService;
   private boolean mBound = false;
 
   /** Defines callbacks for service binding, passed to bindService() */

@@ -3,7 +3,11 @@ package org.tensorflow.lite.examples.detection;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
+import org.tensorflow.lite.examples.detection.tflite.Detector;
+
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import jp.oist.abcvlib.core.AbcvlibLooper;
@@ -32,8 +36,8 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
     }
 
     /** method for clients */
-    public String getString() {
-        return "testin123";
+    public void onNewResults(List<Detector.Recognition> results) {
+        Log.i("Results", results.size() + " new results");
     }
 
 
