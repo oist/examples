@@ -18,8 +18,10 @@ package org.tensorflow.lite.examples.detection;
 
 import android.Manifest;
 import android.app.Fragment;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraAccessException;
@@ -34,6 +36,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.IBinder;
 import android.os.Trace;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
@@ -53,8 +56,6 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import java.nio.ByteBuffer;
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
-
-//import jp.oist.abcvlib.tests.BackAndForthService;
 
 public abstract class CameraActivity extends AppCompatActivity
     implements OnImageAvailableListener,
@@ -88,10 +89,29 @@ public abstract class CameraActivity extends AppCompatActivity
   private ImageView plusImageView, minusImageView;
   private SwitchCompat apiSwitchCompat;
   private TextView threadsTextView;
+  private PuckMountControllerService puckMountControllerService;
+  private boolean mBound = false;
+
+  /** Defines callbacks for service binding, passed to bindService() */
+  private ServiceConnection connection = new ServiceConnection() {
+
+    @Override
+    public void onServiceConnected(ComponentName className,
+                                   IBinder service) {
+      // We've bound to LocalService, cast the IBinder and get LocalService instance
+      PuckMountControllerService.LocalBinder binder = (PuckMountControllerService.LocalBinder) service;
+      puckMountControllerService = binder.getService();
+      mBound = true;
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName arg0) {
+      mBound = false;
+    }
+  };
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
-    startService(new Intent(this, PuckMountControllerService.class));
     LOGGER.d("onCreate " + this);
     super.onCreate(null);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -299,6 +319,9 @@ public abstract class CameraActivity extends AppCompatActivity
   public synchronized void onStart() {
     LOGGER.d("onStart " + this);
     super.onStart();
+    Intent intent = new Intent(this, PuckMountControllerService.class);
+    startService(intent);
+    bindService(intent, connection, Context.BIND_AUTO_CREATE);
   }
 
   @Override
@@ -331,6 +354,8 @@ public abstract class CameraActivity extends AppCompatActivity
   public synchronized void onStop() {
     LOGGER.d("onStop " + this);
     super.onStop();
+    unbindService(connection);
+    mBound = false;
   }
 
   @Override

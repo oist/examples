@@ -1,6 +1,8 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
 
 import java.util.concurrent.TimeUnit;
 
@@ -10,6 +12,32 @@ import jp.oist.abcvlib.core.IOReadyListener;
 import jp.oist.abcvlib.tests.BackAndForthController;
 
 public class PuckMountControllerService extends AbcvlibService implements IOReadyListener{
+    // Binder given to clients
+    private final IBinder binder = new LocalBinder();
+
+    /**
+     * Class used for the client Binder.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+        PuckMountControllerService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return PuckMountControllerService.this;
+        }
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    /** method for clients */
+    public String getString() {
+        return "testin123";
+    }
+
+
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         setIoReadyListener(this);
