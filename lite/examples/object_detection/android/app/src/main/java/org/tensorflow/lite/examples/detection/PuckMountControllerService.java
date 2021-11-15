@@ -1,12 +1,14 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.content.Intent;
+import android.graphics.RectF;
 import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
 import org.tensorflow.lite.examples.detection.tflite.Detector;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -16,6 +18,8 @@ import jp.oist.abcvlib.core.IOReadyListener;
 import jp.oist.abcvlib.tests.BackAndForthController;
 
 public class PuckMountControllerService extends AbcvlibService implements IOReadyListener{
+    private float minimumConfidence = 0.6f;
+
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
 
@@ -37,7 +41,23 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
 
     /** method for clients */
     public void onNewResults(List<Detector.Recognition> results) {
+        Detector.Recognition target_puck = new Detector.Recognition(null, "puck_red", 0.0f, new RectF(0,0,0,0));
+        Detector.Recognition target_robot = new Detector.Recognition(null, "robot_front", 0.0f, new RectF(0,0,0,0));;
         Log.i("Results", results.size() + " new results");
+        for (final Detector.Recognition result : results) {
+            if (result.getConfidence() > minimumConfidence){
+                float boundingBoxArea = result.getLocation().height() * result.getLocation().height();
+                // Update target robot to be the one with the largest bounding box (closest)
+                if ((result.getTitle().equals("robot_front") || result.getTitle().equals("robot_back")) && (result.getBBArea() > target_robot.getBBArea())){
+                    target_robot = result;
+                }
+                else if (result.getTitle().equals("puck_red") && (result.getBBArea() > target_puck.getBBArea())){
+                    target_puck = result;
+                }
+            }
+        }
+        Log.i("Results", "Target puck location: " + target_puck.getLocation());
+        Log.i("Results", "Target robot location: " + target_robot.getLocation());
     }
 
 

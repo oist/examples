@@ -76,6 +76,10 @@ public interface Detector {
       return new RectF(location);
     }
 
+    public float getBBArea(){
+      return getLocation().height() * getLocation().width();
+    }
+
     public void setLocation(RectF location) {
       this.location = location;
     }
