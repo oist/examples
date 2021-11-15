@@ -8,17 +8,17 @@ import android.util.Log;
 
 import org.tensorflow.lite.examples.detection.tflite.Detector;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import jp.oist.abcvlib.core.AbcvlibLooper;
 import jp.oist.abcvlib.core.AbcvlibService;
 import jp.oist.abcvlib.core.IOReadyListener;
-import jp.oist.abcvlib.tests.BackAndForthController;
 
 public class PuckMountControllerService extends AbcvlibService implements IOReadyListener{
     private float minimumConfidence = 0.6f;
+    private CenterPuckController centerPuckController;
+    private float center = 320f / 2f;
 
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
@@ -56,11 +56,25 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
                 }
             }
         }
-        Log.i("Results", "Target puck location: " + target_puck.getLocation());
+        Log.i("Results", "Target puck center: " + target_puck.getLocation().centerX());
         Log.i("Results", "Target robot location: " + target_robot.getLocation());
+        // Determine which target to approach
+        // if puck
+        if (centerPuckController != null){
+            if (target_puck.getBBArea() > 0){
+                float phi = (center - target_puck.getLocation().centerX()) / center;
+                //todo hardcoded 320 here. Need to set dynamically somehow
+                float proximity = target_puck.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
+                centerPuckController.setTarget(true, phi, proximity);
+            }else{
+                centerPuckController.setTarget(false, 0, 0);
+            }
+        }
     }
 
-
+    public void setCenter(float center){
+        this.center = center;
+    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -70,17 +84,16 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
 
     @Override
     public void onIOReady(AbcvlibLooper abcvlibLooper) {
-        float speed = 0.5f;
-        // Customizing ALL build params. You can remove any or all. This object not used, but here for reference.
-        BackAndForthController backAndForthController = (BackAndForthController) new BackAndForthController(speed).setInitDelay(0)
-                .setName("BackAndForthController").setThreadCount(1)
-                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(1000)
+
+        centerPuckController = (CenterPuckController) new CenterPuckController().setInitDelay(0)
+                .setName("centerPuckController").setThreadCount(1)
+                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
         // Start your custom controller
-        backAndForthController.startController();
+        centerPuckController.startController();
         // Adds your custom controller to the compounding master controller.
-        getOutputs().getMasterController().addController(backAndForthController);
+        getOutputs().getMasterController().addController(centerPuckController);
         // Start the master controller after adding and starting any customer controllers.
         getOutputs().startMasterController();
     }

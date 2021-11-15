@@ -180,6 +180,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
             final long startTime = SystemClock.uptimeMillis();
             final List<Detector.Recognition> results = detector.recognizeImage(croppedBitmap);
             // Pass results to controller
+            puckMountControllerService.setCenter(TF_OD_API_INPUT_SIZE / 2f);
             puckMountControllerService.onNewResults(results);
 
             lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
