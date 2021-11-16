@@ -20,7 +20,7 @@ import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
 
 public class HighLevelControllerService extends AbcvlibService implements IOReadyListener{
     private float minimumConfidence = 0.6f;
-    private CenterPuckController centerPuckController;
+    private LowLevelController lowLevelController;
     private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
 
     // Binder given to clients
@@ -63,14 +63,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         Log.i("Results", "Target robot location: " + target_robot.getLocation());
         // Determine which target to approach
         // if puck
-        if (centerPuckController != null){
+        if (lowLevelController != null){
             if (target_puck.getBBArea() > 0){
                 float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
                 //todo hardcoded 320 here. Need to set dynamically somehow
                 float proximity = target_puck.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
-                centerPuckController.setTarget(true, phi, proximity);
+                lowLevelController.setTarget(true, phi, proximity);
             }else{
-                centerPuckController.setTarget(false, 0, 0);
+                lowLevelController.setTarget(false, 0, 0);
             }
         }
     }
@@ -87,21 +87,21 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
     @Override
     public void onIOReady(AbcvlibLooper abcvlibLooper) {
-        centerPuckController = (CenterPuckController) new CenterPuckController().setInitDelay(0)
-                .setName("centerPuckController").setThreadCount(1)
+        lowLevelController = (LowLevelController) new LowLevelController().setInitDelay(0)
+                .setName("lowLevelController").setThreadCount(1)
                 .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
         PublisherManager publisherManager = new PublisherManager();
-        new WheelData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(centerPuckController);
-        new BatteryData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(centerPuckController);
+        new WheelData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(lowLevelController);
+        new BatteryData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(lowLevelController);
         publisherManager.initializePublishers();
         publisherManager.startPublishers();
 
         // Start your custom controller
-        centerPuckController.startController();
+        lowLevelController.startController();
         // Adds your custom controller to the compounding master controller.
-        getOutputs().getMasterController().addController(centerPuckController);
+        getOutputs().getMasterController().addController(lowLevelController);
         // Start the master controller after adding and starting any customer controllers.
         getOutputs().startMasterController();
 
