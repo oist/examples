@@ -14,6 +14,9 @@ import java.util.concurrent.TimeUnit;
 import jp.oist.abcvlib.core.AbcvlibLooper;
 import jp.oist.abcvlib.core.AbcvlibService;
 import jp.oist.abcvlib.core.IOReadyListener;
+import jp.oist.abcvlib.core.inputs.PublisherManager;
+import jp.oist.abcvlib.core.inputs.microcontroller.BatteryData;
+import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
 
 public class PuckMountControllerService extends AbcvlibService implements IOReadyListener{
     private float minimumConfidence = 0.6f;
@@ -84,11 +87,16 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
 
     @Override
     public void onIOReady(AbcvlibLooper abcvlibLooper) {
-
         centerPuckController = (CenterPuckController) new CenterPuckController().setInitDelay(0)
                 .setName("centerPuckController").setThreadCount(1)
                 .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
+
+        PublisherManager publisherManager = new PublisherManager();
+        new WheelData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(centerPuckController);
+        new BatteryData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(centerPuckController);
+        publisherManager.initializePublishers();
+        publisherManager.startPublishers();
 
         // Start your custom controller
         centerPuckController.startController();
@@ -96,5 +104,6 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
         getOutputs().getMasterController().addController(centerPuckController);
         // Start the master controller after adding and starting any customer controllers.
         getOutputs().startMasterController();
+
     }
 }
