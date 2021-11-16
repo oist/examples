@@ -21,7 +21,7 @@ import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
 public class PuckMountControllerService extends AbcvlibService implements IOReadyListener{
     private float minimumConfidence = 0.6f;
     private CenterPuckController centerPuckController;
-    private float center = 320f / 2f;
+    private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
 
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
@@ -65,7 +65,7 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
         // if puck
         if (centerPuckController != null){
             if (target_puck.getBBArea() > 0){
-                float phi = (center - target_puck.getLocation().centerX()) / center;
+                float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
                 //todo hardcoded 320 here. Need to set dynamically somehow
                 float proximity = target_puck.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
                 centerPuckController.setTarget(true, phi, proximity);

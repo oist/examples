@@ -19,7 +19,7 @@ public class CenterPuckController extends AbcvlibController implements BatteryDa
     }
     private State state = State.SEARCHING;
     private float phi = 0;
-    private float p_phi = 0.35f;
+    private float p_phi = 0.45f;
     private boolean targetAquired = false;
     private float proximity = 0; // from 0 to 1 where 1 is directly in front of the camera and zero being invisible.
     private float staticApproachSpeed = 0.5f;
@@ -63,7 +63,7 @@ public class CenterPuckController extends AbcvlibController implements BatteryDa
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
 
     public void run(){
-
+        Log.d("controller", "state: "+ state);
         if (targetAquired){
             switch (state){
                 case SEARCHING:
@@ -120,6 +120,7 @@ public class CenterPuckController extends AbcvlibController implements BatteryDa
                     }else if (chargerCurrent < chargingCurrent){
                         if (lowCurrentFrameCount > maxlowCurrentFrameCount){
                             state = State.DISMOUNTING;
+                            lowCurrentFrameCount = 0;
                         }else{
                             Log.d("controller", "lowCurrentFrameCnt = " + lowCurrentFrameCount);
                             lowCurrentFrameCount++;
@@ -169,10 +170,9 @@ public class CenterPuckController extends AbcvlibController implements BatteryDa
 
     private void mount(){
         // Todo check polarity on these turns. Could be opposite
-        float outputLeft = -(phi * p_phi) + (staticApproachSpeed + (variableApproachSpeed * proximity));
-        float outputRight = (phi * p_phi) + (staticApproachSpeed + (variableApproachSpeed * proximity));
+        float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
+        float outputRight = (phi * p_phi) + (staticApproachSpeed);
         setOutput(outputLeft, outputRight);
-//        Log.d("controller", "CenterPuckController left:" + output.left + " right:" + output.right);
     }
 
     private void dismount(){
