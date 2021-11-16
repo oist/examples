@@ -18,7 +18,7 @@ import jp.oist.abcvlib.core.inputs.PublisherManager;
 import jp.oist.abcvlib.core.inputs.microcontroller.BatteryData;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
 
-public class PuckMountControllerService extends AbcvlibService implements IOReadyListener{
+public class HighLevelControllerService extends AbcvlibService implements IOReadyListener{
     private float minimumConfidence = 0.6f;
     private CenterPuckController centerPuckController;
     private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
@@ -31,9 +31,9 @@ public class PuckMountControllerService extends AbcvlibService implements IORead
      * runs in the same process as its clients, we don't need to deal with IPC.
      */
     public class LocalBinder extends Binder {
-        PuckMountControllerService getService() {
+        HighLevelControllerService getService() {
             // Return this instance of LocalService so clients can call public methods
-            return PuckMountControllerService.this;
+            return HighLevelControllerService.this;
         }
     }
 

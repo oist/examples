@@ -42,7 +42,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.appcompat.widget.Toolbar;
 
-import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.View;
@@ -91,7 +90,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private ImageView plusImageView, minusImageView;
   private SwitchCompat apiSwitchCompat;
   private TextView threadsTextView;
-  protected PuckMountControllerService puckMountControllerService;
+  protected HighLevelControllerService highLevelControllerService;
   private boolean mBound = false;
 
   /** Defines callbacks for service binding, passed to bindService() */
@@ -101,8 +100,8 @@ public abstract class CameraActivity extends AppCompatActivity
     public void onServiceConnected(ComponentName className,
                                    IBinder service) {
       // We've bound to LocalService, cast the IBinder and get LocalService instance
-      PuckMountControllerService.LocalBinder binder = (PuckMountControllerService.LocalBinder) service;
-      puckMountControllerService = binder.getService();
+      HighLevelControllerService.LocalBinder binder = (HighLevelControllerService.LocalBinder) service;
+      highLevelControllerService = binder.getService();
       mBound = true;
     }
 
@@ -322,7 +321,7 @@ public abstract class CameraActivity extends AppCompatActivity
     LOGGER.d("onStart " + this);
     super.onStart();
     setNumThreads(5);
-    Intent intent = new Intent(this, PuckMountControllerService.class);
+    Intent intent = new Intent(this, HighLevelControllerService.class);
     startService(intent);
     bindService(intent, connection, Context.BIND_AUTO_CREATE);
   }

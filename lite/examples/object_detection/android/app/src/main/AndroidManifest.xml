@@ -40,7 +40,7 @@
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/accessory_filter" />
         </activity>
-        <service android:name=".PuckMountControllerService" />
+        <service android:name=".HighLevelControllerService" />
 
     </application>
 </manifest>
