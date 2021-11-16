@@ -12,7 +12,7 @@ import jp.oist.abcvlib.core.outputs.AbcvlibController;
 import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
 import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
-public class LowLevelController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber {
+public class ChargeController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber {
 
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING

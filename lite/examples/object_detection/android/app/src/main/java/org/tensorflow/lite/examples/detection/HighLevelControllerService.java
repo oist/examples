@@ -8,7 +8,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleObserver;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LifecycleRegistry;
 
@@ -42,7 +41,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private HighLevelControllerService.State state = State.CHARGING;
 
     private float minimumConfidence = 0.6f;
-    private LowLevelController lowLevelController;
+    private ChargeController chargeController;
     private MatingController matingController;
     private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
     private float batteryVoltage = 0;
@@ -97,7 +96,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
         Log.i("Results", "Target puck center: " + target_puck.getLocation().centerX());
         Log.i("Results", "Target robot location: " + target_robot.getLocation());
-        if (lowLevelController != null){
+        if (chargeController != null){
             updateState();
             sendControl(target_robot, target_puck);
         }
@@ -125,23 +124,23 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     //Do stuff
                 }else{
                     Log.i("HighLevel", "Mating Selected");
-                    lowLevelController.stopController();
+                    chargeController.stopController();
                     matingController.startController();
                 }
                 break;
             case CHARGING:
-                if (lowLevelController.isRunning()){
+                if (chargeController.isRunning()){
                     if (target_puck.getBBArea() > 0){
                         float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
                         //todo hardcoded 320 here. Need to set dynamically somehow
                         float proximity = target_puck.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
-                        lowLevelController.setTarget(true, phi, proximity);
+                        chargeController.setTarget(true, phi, proximity);
                     }else{
-                        lowLevelController.setTarget(false, 0, 0);
+                        chargeController.setTarget(false, 0, 0);
                     }
                 }else{
                     Log.i("HighLevel", "Charging Selected");
-                    lowLevelController.startController();
+                    chargeController.startController();
                     matingController.stopController();
                 }
                 break;
@@ -154,8 +153,8 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
     @Override
     public void onIOReady(AbcvlibLooper abcvlibLooper) {
-        lowLevelController = (LowLevelController) new LowLevelController().setInitDelay(0)
-                .setName("lowLevelController").setThreadCount(1)
+        chargeController = (ChargeController) new ChargeController().setInitDelay(0)
+                .setName("chargeController").setThreadCount(1)
                 .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
@@ -165,16 +164,16 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
         PublisherManager publisherManager = new PublisherManager();
-        new WheelData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(lowLevelController).addSubscriber(matingController);
-        new BatteryData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(lowLevelController).addSubscriber(this);
+        new WheelData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(chargeController).addSubscriber(matingController);
+        new BatteryData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(chargeController).addSubscriber(this);
         new QRCodeData.Builder(this, publisherManager, this).build().addSubscriber(matingController);
         publisherManager.initializePublishers();
         publisherManager.startPublishers();
 
         // Start your custom controller
-        lowLevelController.startController();
+        chargeController.startController();
         // Adds your custom controller to the compounding master controller.
-        getOutputs().getMasterController().addController(lowLevelController);
+        getOutputs().getMasterController().addController(chargeController);
         // Start the master controller after adding and starting any customer controllers.
         getOutputs().startMasterController();
 
