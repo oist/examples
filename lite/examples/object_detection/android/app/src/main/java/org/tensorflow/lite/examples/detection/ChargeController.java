@@ -152,10 +152,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         }
     }
 
-    private void charge(){
-        setOutput(0, 0);
-    }
-
     /**
      * Just a way of generating new random speeds on the wheels.
      */
@@ -169,8 +165,11 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         setOutput(outputLeft, outputRight);
     }
 
+    private void charge(){
+        setOutput(0, 0);
+    }
+
     private void mount(){
-        // Todo check polarity on these turns. Could be opposite
         float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
         float outputRight = (phi * p_phi) + (staticApproachSpeed);
         setOutput(outputLeft, outputRight);
