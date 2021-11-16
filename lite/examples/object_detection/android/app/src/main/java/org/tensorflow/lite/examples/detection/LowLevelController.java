@@ -12,7 +12,7 @@ import jp.oist.abcvlib.core.outputs.AbcvlibController;
 import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
 import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
-public class LowLevelController extends AbcvlibController implements BatteryDataSubscriber, WheelDataSubscriber {
+public class LowLevelController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber {
 
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
@@ -55,12 +55,13 @@ public class LowLevelController extends AbcvlibController implements BatteryData
     private float chargingCurrent = 2.0f;// todo check range of values
     private float chargedVoltage = 4.0f; //todo check range of values
 
-    private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
-    private int searchSameSpeedCnt = 0;
-
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage chargingVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
+
+
+    private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
+    private int searchSameSpeedCnt = 0;
 
     public void run(){
         Log.d("controller", "state: "+ state);
@@ -211,39 +212,18 @@ public class LowLevelController extends AbcvlibController implements BatteryData
     }
 
     @Override
-    public void onBatteryVoltageUpdate(double voltage, long timestamp) {
-//        this.batteryVoltage = (float) voltage; //todo is this casting ok?
-        this.batteryVoltage = batteryVoltageLP.average((float) voltage); //todo is this casting ok?
-    }
-
-    @Override
-    public void onChargerVoltageUpdate(double chargerVoltage, double coilVoltage, long timestamp) {
-//        this.chargerCurrent = (float) chargerVoltage; //todo is this casting ok?
-//        this.coilCurrent = (float) coilVoltage; //todo is this casting ok?
-        this.chargerCurrent = chargingVoltageLP.average((float) chargerVoltage); //todo is this casting ok?
-        this.coilCurrent = coilVoltageLP.average((float) coilVoltage); //todo is this casting ok?
-    }
-
-    @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
 
     }
 
-    class ExponentialMovingAverage {
-        private final float alpha;
-        private Float oldValue;
-        public ExponentialMovingAverage(float alpha) {
-            this.alpha = alpha;
-        }
+    @Override
+    public void onBatteryVoltageUpdate(double voltage, long timestamp) {
+        this.batteryVoltage = batteryVoltageLP.average((float) voltage);
+    }
 
-        public float average(float value) {
-            if (oldValue == null) {
-                oldValue = value;
-                return value;
-            }
-            float newValue = oldValue + alpha * (value - oldValue);
-            oldValue = newValue;
-            return newValue;
-        }
+    @Override
+    public void onChargerVoltageUpdate(double chargerVoltage, double coilVoltage, long timestamp) {
+        this.chargerCurrent = chargingVoltageLP.average((float) chargerVoltage);
+        this.coilCurrent = coilVoltageLP.average((float) coilVoltage);
     }
 }
