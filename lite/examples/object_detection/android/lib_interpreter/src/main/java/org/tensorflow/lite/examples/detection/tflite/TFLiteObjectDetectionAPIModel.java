@@ -62,7 +62,7 @@ public class TFLiteObjectDetectionAPIModel implements Detector {
   private static final float IMAGE_MEAN = 127.5f;
   private static final float IMAGE_STD = 127.5f;
   // Number of threads in the java app
-  private static final int NUM_THREADS = 4;
+  private static final int NUM_THREADS = 5;
   private boolean isModelQuantized;
   // Config values.
   private int inputSize;
@@ -126,7 +126,7 @@ public class TFLiteObjectDetectionAPIModel implements Detector {
                 metadata.getAssociatedFile(labelFilename), Charset.defaultCharset()))) {
       String line;
       while ((line = br.readLine()) != null) {
-        Log.w(TAG, line);
+        Log.w("TAG", line);
         d.labels.add(line);
       }
     }

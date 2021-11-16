@@ -83,7 +83,7 @@ public class TFLiteObjectDetectionAPIModel implements Detector {
 
   private TFLiteObjectDetectionAPIModel(Context context, String modelFilename) throws IOException {
     modelBuffer = FileUtil.loadMappedFile(context, modelFilename);
-    optionsBuilder = ObjectDetectorOptions.builder().setMaxResults(NUM_DETECTIONS);
+    optionsBuilder = ObjectDetectorOptions.builder().setNumThreads(5).setMaxResults(NUM_DETECTIONS);
     objectDetector = ObjectDetector.createFromBufferAndOptions(modelBuffer, optionsBuilder.build());
   }
 

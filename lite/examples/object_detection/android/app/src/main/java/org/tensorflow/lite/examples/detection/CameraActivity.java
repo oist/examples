@@ -321,6 +321,7 @@ public abstract class CameraActivity extends AppCompatActivity
   public synchronized void onStart() {
     LOGGER.d("onStart " + this);
     super.onStart();
+    setNumThreads(5);
     Intent intent = new Intent(this, PuckMountControllerService.class);
     startService(intent);
     bindService(intent, connection, Context.BIND_AUTO_CREATE);
