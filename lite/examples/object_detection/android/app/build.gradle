@@ -76,5 +76,5 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestImplementation 'androidx.test:rules:1.1.0'
 
-    implementation 'jp.oist:abcvlib:0.7.1'
+    implementation 'jp.oist:abcvlib:0.7.4'
 }

@@ -64,7 +64,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private int searchSameSpeedCnt = 0;
 
     public void run(){
-        Log.d("controller", "state: "+ state);
         if (targetAquired){
             switch (state){
                 case SEARCHING:
@@ -141,7 +140,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
 
     private void search(){
         if (searchSameSpeedCnt == 0){
-            Log.d("controller", "starting new search");
+            Log.v("controller", "starting new search");
             startNewSearch();
             searchSameSpeedCnt++;
         }else{

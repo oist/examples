@@ -1,14 +1,22 @@
 package org.tensorflow.lite.examples.detection;
 
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.util.Log;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.Random;
 
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
+import jp.oist.abcvlib.core.inputs.phone.ImageData;
+import jp.oist.abcvlib.core.inputs.phone.ImageDataSubscriber;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeDataSubscriber;
 import jp.oist.abcvlib.core.outputs.AbcvlibController;
+import jp.oist.abcvlib.util.QRCode;
 
-public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber {
+public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber, ImageDataSubscriber {
 
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
@@ -38,6 +46,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private int searchSameSpeedCnt = 0;
     private float phi = 0;
     private float p_phi = 0.45f;
+    private Context context;
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
@@ -50,8 +59,12 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     }
 
     @Override
+    public void onImageDataUpdate(long timestamp, int width, int height, Bitmap bitmap, String qrDecodedData) {
+
+    }
+
+    @Override
     public void run() {
-        Log.d("MatingController", "I'm Mating!");
         if (targetAquired){
             switch (state){
                 case SEARCHING:
@@ -99,7 +112,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     private void search(){
         if (searchSameSpeedCnt == 0){
-            Log.d("controller", "starting new search");
+            Log.v("controller", "starting new search");
             startNewSearch();
             searchSameSpeedCnt++;
         }else{
@@ -129,6 +142,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     private void approach(){
         // Turn on QR code
+        // generate new qrcode using the string you want to encode. Use JSONObject.toString for more complex data sets.
+        Log.d("genQR", "mating controller");
+        turnOnQRCode(new int[]{1,2,3});
+//        imageData.setQrcodescanning(true);
 
         // Todo check polarity on these turns. Could be opposite
         float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
@@ -164,4 +181,27 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private void exchangeQRcode(){}
 
     private void updateGenes(){}
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
+
+    protected void turnOnQRCode(int[] genes) {
+        Intent intent = new Intent("intentKey");
+        intent.putExtra("instruction", "turnon");
+        intent.putExtra("genes", genes);
+        Log.d("genQR", "turnOnQRCode context= " + context.toString());
+        if (context != null){
+            LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+        }
+    }
+
+    private void turnOffQRCode() {
+        Intent intent = new Intent("intentKey");
+        // You can also include some extra data.
+        intent.putExtra("instruction", "turnoff");
+        if (context != null){
+            LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+        }
+    }
 }

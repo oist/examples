@@ -3,13 +3,16 @@ package org.tensorflow.lite.examples.detection;
 import android.content.Intent;
 import android.graphics.RectF;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LifecycleRegistry;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import org.tensorflow.lite.examples.detection.tflite.Detector;
 
@@ -23,11 +26,13 @@ import jp.oist.abcvlib.core.inputs.PublisherManager;
 import jp.oist.abcvlib.core.inputs.microcontroller.BatteryData;
 import jp.oist.abcvlib.core.inputs.microcontroller.BatteryDataSubscriber;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
+import jp.oist.abcvlib.core.inputs.phone.ImageData;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeData;
 
 public class HighLevelControllerService extends AbcvlibService implements IOReadyListener, BatteryDataSubscriber, LifecycleOwner {
 
     private LifecycleRegistry lifecycleRegistry;
+    private QRCodePublisher qrCodePublisher;
 
     @NonNull
     @Override
@@ -46,8 +51,13 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
-    private float minMatingVoltage = 2.9f;
-    private float maxChargingVoltage = 3.0f;
+    private float minMatingVoltage = 2.8f;
+    private float maxChargingVoltage = 2.9f;
+    private ImageData imageData;
+    private PublisherManager publisherManager;
+    private WheelData wheelData;
+    private BatteryData batteryData;
+    private QRCodeData qrCodeData;
 
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
@@ -71,17 +81,27 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         setIoReadyListener(this);
-//        lifecycleRegistry.markState(Lifecycle.State.STARTED);
         return super.onStartCommand(intent, flags, startId);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.P)
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        lifecycleRegistry = new LifecycleRegistry(this);
+        lifecycleRegistry.setCurrentState(Lifecycle.State.CREATED);
+        lifecycleRegistry.setCurrentState(Lifecycle.State.STARTED);
+    }
 
+    @Override
+    public void onStart(Intent intent, int startId) {
+        super.onStart(intent, startId);
+    }
 
     /** method for clients */
     public void onNewResults(List<Detector.Recognition> results) {
         Detector.Recognition target_puck = new Detector.Recognition(null, "puck_red", 0.0f, new RectF(0,0,0,0));
         Detector.Recognition target_robot = new Detector.Recognition(null, "robot_front", 0.0f, new RectF(0,0,0,0));;
-        Log.i("Results", results.size() + " new results");
         for (final Detector.Recognition result : results) {
             if (result.getConfidence() > minimumConfidence){
                 float boundingBoxArea = result.getLocation().height() * result.getLocation().height();
@@ -94,8 +114,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 }
             }
         }
-        Log.i("Results", "Target puck center: " + target_puck.getLocation().centerX());
-        Log.i("Results", "Target robot location: " + target_robot.getLocation());
         if (chargeController != null){
             updateState();
             sendControl(target_robot, target_puck);
@@ -103,6 +121,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     }
 
     public void updateState(){
+        Log.v("HighLevel", "state:" + state);
         switch (state){
             case MATING:
                 if (batteryVoltage < minMatingVoltage){
@@ -117,19 +136,28 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
     }
 
+    public void setQRCodePublisher(QRCodePublisher publisher){
+        this.qrCodePublisher = publisher;
+    }
+
     public void sendControl(Detector.Recognition target_robot, Detector.Recognition target_puck){
         switch (state){
             case MATING:
                 if (matingController.isRunning()){
                     //Do stuff
+                    qrCodePublisher.turnOnQRCode(new int[]{1,2,3});
+//                    matingController.turnOnQRCode(new int[]{1,2,3});
                 }else{
                     Log.i("HighLevel", "Mating Selected");
-                    chargeController.stopController();
+                    if (chargeController.isRunning()){
+                        chargeController.stopController();
+                    }
                     matingController.startController();
                 }
                 break;
             case CHARGING:
                 if (chargeController.isRunning()){
+                    Log.i("HighLevel", "Continuing to Charge");
                     if (target_puck.getBBArea() > 0){
                         float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
                         //todo hardcoded 320 here. Need to set dynamically somehow
@@ -141,7 +169,9 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 }else{
                     Log.i("HighLevel", "Charging Selected");
                     chargeController.startController();
-                    matingController.stopController();
+                    if (matingController.isRunning()){
+                        matingController.stopController();
+                    }
                 }
                 break;
         }
@@ -151,6 +181,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         this.center = center;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     public void onIOReady(AbcvlibLooper abcvlibLooper) {
         chargeController = (ChargeController) new ChargeController().setInitDelay(0)
@@ -163,26 +194,41 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
-        PublisherManager publisherManager = new PublisherManager();
-        new WheelData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(chargeController).addSubscriber(matingController);
-        new BatteryData.Builder(this, publisherManager, abcvlibLooper).build().addSubscriber(chargeController).addSubscriber(this);
-        new QRCodeData.Builder(this, publisherManager, this).build().addSubscriber(matingController);
+        matingController.setContext(this);
+
+        publisherManager = new PublisherManager();
+        wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
+        wheelData.addSubscriber(chargeController).addSubscriber(matingController);
+        batteryData = new BatteryData.Builder(this, publisherManager, abcvlibLooper).build();
+        batteryData.addSubscriber(chargeController).addSubscriber(this);
+        qrCodeData = new QRCodeData.Builder(this, publisherManager, this).build();
+        qrCodeData.addSubscriber(matingController);
+//        imageData = new ImageData.Builder(this, publisherManager, this)
+//                .build();
+//        imageData.addSubscriber(matingController);
+
+        Log.d("race", "init publishers start");
         publisherManager.initializePublishers();
+        Log.d("race", "init publishers end");
+        Log.d("race", "start publishers start");
         publisherManager.startPublishers();
+        Log.d("race", "start publishers end");
 
         // Start your custom controller
         chargeController.startController();
+        matingController.startController();
         // Adds your custom controller to the compounding master controller.
         getOutputs().getMasterController().addController(chargeController);
+        // Adds your custom controller to the compounding master controller.
+        getOutputs().getMasterController().addController(matingController);
         // Start the master controller after adding and starting any customer controllers.
         getOutputs().startMasterController();
 
-        lifecycleRegistry = new LifecycleRegistry(this);
-//        lifecycleRegistry.markState(Lifecycle.State.CREATED);
     }
 
     @Override
     public void onBatteryVoltageUpdate(double voltage, long timestamp) {
+//        Log.v("race", "batt:" + voltage);
         this.batteryVoltage = batteryVoltageLP.average((float) voltage);
     }
 

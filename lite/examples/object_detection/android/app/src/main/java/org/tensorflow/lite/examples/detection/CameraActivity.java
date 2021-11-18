@@ -18,9 +18,11 @@ package org.tensorflow.lite.examples.detection;
 
 import android.Manifest;
 import android.app.Fragment;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
@@ -42,6 +44,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.appcompat.widget.Toolbar;
 
+import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 import android.view.View;
@@ -53,16 +56,21 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import java.nio.ByteBuffer;
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
 
+import jp.oist.abcvlib.util.QRCode;
+
 public abstract class CameraActivity extends AppCompatActivity
     implements OnImageAvailableListener,
         Camera.PreviewCallback,
         CompoundButton.OnCheckedChangeListener,
-        View.OnClickListener {
+        View.OnClickListener,
+        QRCodePublisher{
   private static final Logger LOGGER = new Logger();
 
   private static final int PERMISSIONS_REQUEST = 1;
@@ -93,6 +101,8 @@ public abstract class CameraActivity extends AppCompatActivity
   protected HighLevelControllerService highLevelControllerService;
   private boolean mBound = false;
 
+  private QRCode qrCode;
+
   /** Defines callbacks for service binding, passed to bindService() */
   private ServiceConnection connection = new ServiceConnection() {
 
@@ -103,6 +113,7 @@ public abstract class CameraActivity extends AppCompatActivity
       HighLevelControllerService.LocalBinder binder = (HighLevelControllerService.LocalBinder) service;
       highLevelControllerService = binder.getService();
       mBound = true;
+      highLevelControllerService.setQRCodePublisher(CameraActivity.this);
     }
 
     @Override
@@ -110,6 +121,7 @@ public abstract class CameraActivity extends AppCompatActivity
       mBound = false;
     }
   };
+  private boolean qrCodeOn = false;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
@@ -118,6 +130,8 @@ public abstract class CameraActivity extends AppCompatActivity
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
     setContentView(R.layout.tfe_od_activity_camera);
+    // create a new QRCode object with input args point to the FragmentManager and your layout fragment where you want to generate the qrcode image.
+    qrCode = new QRCode(getSupportFragmentManager(), R.id.container);
     Toolbar toolbar = findViewById(R.id.toolbar);
     setSupportActionBar(toolbar);
     getSupportActionBar().setDisplayShowTitleEnabled(false);
@@ -192,6 +206,24 @@ public abstract class CameraActivity extends AppCompatActivity
 
     plusImageView.setOnClickListener(this);
     minusImageView.setOnClickListener(this);
+
+  }
+
+  public void turnOnQRCode(int[] genes){
+    if (qrCode == null){
+      Log.d("genQR", "qrCode is null");
+    }
+    if (!qrCodeOn && qrCode != null){
+      qrCode.generate("Hello World!");
+      qrCodeOn = true;
+    }
+  }
+
+  public void turnOffQRCode(){
+    if (qrCodeOn && qrCode != null){
+      qrCode.close();
+      qrCodeOn = false;
+    }
   }
 
   protected int[] getRgbBytes() {
@@ -255,6 +287,7 @@ public abstract class CameraActivity extends AppCompatActivity
   /** Callback for Camera2 API */
   @Override
   public void onImageAvailable(final ImageReader reader) {
+
     // We need wait until we have some size from onPreviewSizeChosen
     if (previewWidth == 0 || previewHeight == 0) {
       return;
