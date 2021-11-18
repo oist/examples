@@ -114,7 +114,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 }
             }
         }
-        if (chargeController != null){
+        if (chargeController != null && matingController != null){
             updateState();
             sendControl(target_robot, target_puck);
         }
@@ -144,8 +144,16 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         switch (state){
             case MATING:
                 if (matingController.isRunning()){
-                    //Do stuff
-                    qrCodePublisher.turnOnQRCode(new int[]{1,2,3});
+                    Log.i("HighLevel", "Mating");
+                    if (target_robot.getBBArea() > 0){
+                        float phi = (center - target_robot.getLocation().centerX()) / (320f/2f);
+                        //todo hardcoded 320 here. Need to set dynamically somehow
+                        float proximity = target_robot.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
+                        matingController.setTarget(true, phi, proximity);
+                    }else{
+                        matingController.setTarget(false, 0, 0);
+                    }
+//                    qrCodePublisher.turnOnQRCode(new int[]{1,2,3});
 //                    matingController.turnOnQRCode(new int[]{1,2,3});
                 }else{
                     Log.i("HighLevel", "Mating Selected");
@@ -195,6 +203,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
         matingController.setContext(this);
+        matingController.setQrCodePublisher(qrCodePublisher);
 
         publisherManager = new PublisherManager();
         wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
@@ -214,9 +223,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         publisherManager.startPublishers();
         Log.d("race", "start publishers end");
 
-        // Start your custom controller
-        chargeController.startController();
-        matingController.startController();
         // Adds your custom controller to the compounding master controller.
         getOutputs().getMasterController().addController(chargeController);
         // Adds your custom controller to the compounding master controller.

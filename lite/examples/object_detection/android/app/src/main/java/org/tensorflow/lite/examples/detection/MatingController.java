@@ -18,6 +18,10 @@ import jp.oist.abcvlib.util.QRCode;
 
 public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber, ImageDataSubscriber {
 
+    private QRCodePublisher qrCodePublisher;
+    private float proximity = 0;
+    private float minProximity = 0.2f;
+
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
     }
@@ -25,8 +29,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private boolean targetAquired = false;
     private int visibleFrameCount = 0;
     private int minVisibleFrameCount = 10; // A means to avoid random misclassified distractors
-    private float boundingBoxSize = 0;
-    private float minBoundingBoxSize = 0.2f;
     private enum RobotFacing {
         FRONT, BACK, INVISIBLE
     }
@@ -63,12 +65,18 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     }
 
+    public void setQrCodePublisher(QRCodePublisher publisher){
+        this.qrCodePublisher = publisher;
+    }
+
     @Override
     public void run() {
+        assert qrCodePublisher != null;
         if (targetAquired){
+            Log.d("MatingController", "state: " + state);
             switch (state){
                 case SEARCHING:
-                    search();
+//                    search();
                     state = State.DECIDING;
                     break;
                 case DECIDING:
@@ -82,7 +90,8 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     break;
                 case APPROACHING:
                     approach();
-                    if (boundingBoxSize > minBoundingBoxSize){
+                    Log.d("MatingController", "prox: " + proximity);
+                    if (proximity > minProximity){
                         state = State.WAITING;
                     }
                     break;
@@ -106,7 +115,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     break;
             }
         }else{
-            search();
+//            search();
         }
     }
 
@@ -144,7 +153,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         // Turn on QR code
         // generate new qrcode using the string you want to encode. Use JSONObject.toString for more complex data sets.
         Log.d("genQR", "mating controller");
-        turnOnQRCode(new int[]{1,2,3});
+        qrCodePublisher.turnOnQRCode(new int[]{1,2,3});
 //        imageData.setQrcodescanning(true);
 
         // Todo check polarity on these turns. Could be opposite
@@ -159,6 +168,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     private void flee(){
         // Turn off QR Code
+        qrCodePublisher.turnOffQRCode();
 
         // Hard coded flee sequence
         try {
@@ -186,22 +196,9 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         this.context = context;
     }
 
-    protected void turnOnQRCode(int[] genes) {
-        Intent intent = new Intent("intentKey");
-        intent.putExtra("instruction", "turnon");
-        intent.putExtra("genes", genes);
-        Log.d("genQR", "turnOnQRCode context= " + context.toString());
-        if (context != null){
-            LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-        }
-    }
-
-    private void turnOffQRCode() {
-        Intent intent = new Intent("intentKey");
-        // You can also include some extra data.
-        intent.putExtra("instruction", "turnoff");
-        if (context != null){
-            LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-        }
+    protected void setTarget(boolean targetAquired, float phi, float proximity){
+        this.targetAquired = targetAquired;
+        this.phi = phi;
+        this.proximity = proximity;
     }
 }
