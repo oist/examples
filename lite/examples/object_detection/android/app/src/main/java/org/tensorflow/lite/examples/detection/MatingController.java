@@ -16,7 +16,7 @@ import jp.oist.abcvlib.core.inputs.phone.QRCodeDataSubscriber;
 import jp.oist.abcvlib.core.outputs.AbcvlibController;
 import jp.oist.abcvlib.util.QRCode;
 
-public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber, ImageDataSubscriber {
+public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber {
 
     private QRCodePublisher qrCodePublisher;
     private float proximity = 0;
@@ -57,11 +57,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     @Override
     public void onQRCodeDetected(String qrDataDecoded) {
-
-    }
-
-    @Override
-    public void onImageDataUpdate(long timestamp, int width, int height, Bitmap bitmap, String qrDecodedData) {
 
     }
 

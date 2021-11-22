@@ -27,7 +27,6 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.SystemClock;
-import android.util.Log;
 import android.util.Size;
 import android.util.TypedValue;
 import android.widget.Toast;
@@ -58,7 +57,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private static final DetectorMode MODE = DetectorMode.TF_OD_API;
   // Minimum detection confidence to track a detection.
   private static final float MINIMUM_CONFIDENCE_TF_OD_API = 0.6f;
-  private static final boolean MAINTAIN_ASPECT = false;
+  private static final boolean MAINTAIN_ASPECT = true;
   private static final Size DESIRED_PREVIEW_SIZE = new Size(640, 480);
   private static final boolean SAVE_PREVIEW_BITMAP = false;
   private static final float TEXT_SIZE_DIP = 10;
@@ -71,6 +70,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private Bitmap rgbFrameBitmap = null;
   private Bitmap croppedBitmap = null;
   private Bitmap cropCopyBitmap = null;
+  private int[] rgbBytes;
 
   private boolean computingDetection = false;
 
@@ -162,7 +162,8 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     computingDetection = true;
     LOGGER.i("Preparing image " + currTimestamp + " for detection in bg thread.");
 
-    rgbFrameBitmap.setPixels(getRgbBytes(), 0, previewWidth, 0, 0, previewWidth, previewHeight);
+    rgbBytes = getRgbBytes();
+    rgbFrameBitmap.setPixels(rgbBytes, 0, previewWidth, 0, 0, previewWidth, previewHeight);
 
     readyForNextImage();
 
@@ -180,9 +181,11 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
             LOGGER.i("Running detection on image " + currTimestamp);
             final long startTime = SystemClock.uptimeMillis();
             final List<Detector.Recognition> results = detector.recognizeImage(croppedBitmap);
+            // Pass image to QRCode Detector:
+            qrCodeDetectionExecutor.execute(() -> highLevelControllerService.analyze(previewWidth, previewHeight, rgbBytes, frameToCropTransform));
             // Pass results to controller
             highLevelControllerService.setCenter(TF_OD_API_INPUT_SIZE / 2f);
-            highLevelControllerService.onNewResults(results);
+            controllerExecutor.execute(() -> highLevelControllerService.onNewResults(results));
 
             lastProcessingTimeMs = SystemClock.uptimeMillis() - startTime;
 

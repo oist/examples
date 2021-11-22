@@ -70,6 +70,8 @@ dependencies {
     implementation 'com.google.android.material:material:1.0.0'
     implementation 'io.github.nishkarsh:android-permissions:2.0.54'
     implementation "androidx.camera:camera-camera2:1.1.0-alpha07"
+    implementation 'com.google.zxing:core:3.4.1'
+    implementation 'com.google.zxing:android-integration:3.3.0'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'com.google.truth:truth:1.0.1'
