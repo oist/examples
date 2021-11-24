@@ -3,6 +3,8 @@ package org.tensorflow.lite.examples.detection;
 import android.content.Context;
 import android.util.Log;
 
+import com.karlotoy.perfectune.instance.PerfectTune;
+
 import java.util.Arrays;
 import java.util.Random;
 
@@ -49,6 +51,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private int[] mateGenes = new int[10];
     private Random random = new Random();
     private int maxMutation = 4;
+    PerfectTune perfectTune = new PerfectTune();
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
@@ -200,12 +203,15 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             // Clear to make sure same data not repeatedly used
 //            this.qrDataDecoded = null;
         }
+        perfectTune.setTuneFreq(genes[g]* 1000);
+        perfectTune.playTune();
         // Just trying to prevent only one robot exchanging
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        perfectTune.stopTune();
     }
 
     public void setContext(Context context) {
