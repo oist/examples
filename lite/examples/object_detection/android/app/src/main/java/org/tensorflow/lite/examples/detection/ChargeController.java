@@ -19,7 +19,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     }
     private State state = State.SEARCHING;
     private float phi = 0;
-    private float p_phi = 0.45f;
+    private float p_phi = 0.25f;
     private boolean targetAquired = false;
     private float proximity = 0; // from 0 to 1 where 1 is directly in front of the camera and zero being invisible.
     private float staticApproachSpeed = 0.5f;
