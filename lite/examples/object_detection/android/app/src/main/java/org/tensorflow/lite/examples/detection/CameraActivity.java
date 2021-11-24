@@ -57,6 +57,8 @@ import androidx.annotation.NonNull;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
 
@@ -226,7 +228,9 @@ public abstract class CameraActivity extends AppCompatActivity
       Log.d("genQR", "qrCode is null");
     }
     if (!qrCodeOn && qrCode != null){
-      qrCode.generate("Hello World!");
+      String geneStr = Arrays.toString(genes);
+      Log.d("genQR", "int genes: " + geneStr);
+      qrCode.generate(geneStr);
       qrCodeOn = true;
     }
   }

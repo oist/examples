@@ -209,10 +209,15 @@ public class ImageUtils {
       }
     }
 
+    // Translate so center of image is at origin.
+//    matrix.postTranslate(-srcWidth * 0.3f, -srcHeight * 0.3f);
+
     if (applyRotation != 0) {
       // Translate back from origin centered reference to destination frame.
       matrix.postTranslate(dstWidth / 2.0f, dstHeight / 2.0f);
     }
+
+
 
     return matrix;
   }

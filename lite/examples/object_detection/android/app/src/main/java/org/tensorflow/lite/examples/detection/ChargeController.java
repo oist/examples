@@ -38,7 +38,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ScheduledFuture<?> mountTimer;
     private ScheduledFuture<?> dismountTimer;
     private ScheduledFuture<?> randTurnTimer;
-    private int missTime = 5000; // Milliseconds to wait before assuming you've missed the puck.
+    private int missTime = 7000; // Milliseconds to wait before assuming you've missed the puck.
     private int dismountTime = 3000; // Milliseconds to backup
     private int randTurnTime = 3000; // Milliseconds to turn in a random direction after dismounting
     private boolean missedPuck = false;
@@ -64,6 +64,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private int searchSameSpeedCnt = 0;
 
     public void run(){
+        Log.d("ChargeController", "state: " + state);
         if (targetAquired){
             switch (state){
                 case SEARCHING:

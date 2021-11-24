@@ -27,6 +27,7 @@ import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.ImageReader.OnImageAvailableListener;
 import android.os.SystemClock;
+import android.util.Log;
 import android.util.Size;
 import android.util.TypedValue;
 import android.widget.Toast;
@@ -82,6 +83,8 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
   private MultiBoxTracker tracker;
 
   private BorderedText borderedText;
+  private Bitmap rgbFrameBitmap_Cropped;
+  private Matrix frameToCropTransform_2;
 
   @Override
   public void onPreviewSizeChosen(final Size size, final int rotation) {
@@ -122,6 +125,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
 
     LOGGER.i("Initializing at size %dx%d", previewWidth, previewHeight);
     rgbFrameBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Config.ARGB_8888);
+    rgbFrameBitmap_Cropped = Bitmap.createBitmap(previewHeight, previewHeight, Config.ARGB_8888);
     croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Config.ARGB_8888);
 
     frameToCropTransform =
@@ -129,6 +133,12 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
             previewWidth, previewHeight,
             cropSize, cropSize,
             sensorOrientation, MAINTAIN_ASPECT);
+
+    frameToCropTransform_2 =
+            ImageUtils.getTransformationMatrix(
+                    previewHeight, previewHeight,
+                    cropSize, cropSize,
+                    sensorOrientation, MAINTAIN_ASPECT);
 
     cropToFrameTransform = new Matrix();
     frameToCropTransform.invert(cropToFrameTransform);
@@ -168,7 +178,10 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
     readyForNextImage();
 
     final Canvas canvas = new Canvas(croppedBitmap);
-    canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
+
+//    canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
+    canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform_2, null);
+    Log.d("Detector", "Image Passed");
     // For examining the actual TF input.
     if (SAVE_PREVIEW_BITMAP) {
       ImageUtils.saveBitmap(croppedBitmap);
@@ -209,7 +222,9 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
             for (final Detector.Recognition result : results) {
               final RectF location = result.getLocation();
               if (location != null && result.getConfidence() >= minimumConfidence) {
-                location.set((TF_OD_API_INPUT_SIZE - location.left), location.top, (TF_OD_API_INPUT_SIZE - location.right), location.bottom);
+                float vOffset = (previewWidth - 320f) * 0.17f;
+//                vOffset = 0;
+                location.set((TF_OD_API_INPUT_SIZE - location.left), location.top + vOffset, (TF_OD_API_INPUT_SIZE - location.right), location.bottom + vOffset);
                 canvas.drawRect(location, paint);
 
                 cropToFrameTransform.mapRect(location);

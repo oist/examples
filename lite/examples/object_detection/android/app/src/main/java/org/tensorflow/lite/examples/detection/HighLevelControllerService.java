@@ -77,8 +77,8 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
-    private float minMatingVoltage = 2.8f;
-    private float maxChargingVoltage = 2.9f;
+    private float minMatingVoltage = 2.7f;
+    private float maxChargingVoltage = 2.8f;
     private ImageData imageData;
     private PublisherManager publisherManager;
     private WheelData wheelData;
@@ -126,7 +126,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     }
 
     /** method for clients */
-    public void onNewResults(List<Detector.Recognition> results) {
+    public synchronized void onNewResults(List<Detector.Recognition> results) {
         Detector.Recognition target_puck = new Detector.Recognition(null, "puck_red", 0.0f, new RectF(0,0,0,0));
         Detector.Recognition target_robot = new Detector.Recognition(null, "robot_front", 0.0f, new RectF(0,0,0,0));;
         for (final Detector.Recognition result : results) {
@@ -148,15 +148,18 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     }
 
     public void updateState(){
-        Log.v("HighLevel", "state:" + state);
+        Log.d("HighLevel", "state:" + state);
+        Log.v("HighLevel", "BattV: " + batteryVoltage);
         switch (state){
             case MATING:
                 if (batteryVoltage < minMatingVoltage){
+                    Log.d("HighLevel", "Charging");
                     state = State.CHARGING;
                 }
                 break;
             case CHARGING:
                 if (batteryVoltage > maxChargingVoltage){
+                    Log.d("HighLevel", "Mating");
                     state = State.MATING;
                 }
                 break;
@@ -172,19 +175,15 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         switch (state){
             case MATING:
                 if (matingController.isRunning()){
-                    Log.i("HighLevel", "Mating");
                     if (target_robot.getBBArea() > 0){
                         float phi = (center - target_robot.getLocation().centerX()) / (320f/2f);
                         //todo hardcoded 320 here. Need to set dynamically somehow
                         float proximity = target_robot.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
-                        matingController.setTarget(true, phi, proximity);
+                        matingController.setTarget(true, phi, proximity, target_robot.getTitle());
                     }else{
-                        matingController.setTarget(false, 0, 0);
+                        matingController.setTarget(false, 0, 0, "");
                     }
-//                    qrCodePublisher.turnOnQRCode(new int[]{1,2,3});
-//                    matingController.turnOnQRCode(new int[]{1,2,3});
                 }else{
-                    Log.i("HighLevel", "Mating Selected");
                     if (chargeController.isRunning()){
                         chargeController.stopController();
                     }
@@ -193,7 +192,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 break;
             case CHARGING:
                 if (chargeController.isRunning()){
-                    Log.i("HighLevel", "Continuing to Charge");
                     if (target_puck.getBBArea() > 0){
                         float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
                         //todo hardcoded 320 here. Need to set dynamically somehow
@@ -203,7 +201,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                         chargeController.setTarget(false, 0, 0);
                     }
                 }else{
-                    Log.i("HighLevel", "Charging Selected");
                     chargeController.startController();
                     if (matingController.isRunning()){
                         matingController.stopController();
@@ -243,8 +240,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         wheelData.addSubscriber(chargeController).addSubscriber(matingController);
         batteryData = new BatteryData.Builder(this, publisherManager, abcvlibLooper).build();
         batteryData.addSubscriber(chargeController).addSubscriber(this);
-//        qrCodeData = new QRCodeData.Builder(this, publisherManager, this).build();
-//        qrCodeData.addSubscriber(matingController);
 
         Log.d("race", "init publishers start");
         publisherManager.initializePublishers();
@@ -264,49 +259,27 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
     @Override
     public void onBatteryVoltageUpdate(double voltage, long timestamp) {
-//        Log.v("race", "batt:" + voltage);
         this.batteryVoltage = batteryVoltageLP.average((float) voltage);
+//        Log.v("HighLevel", "Batt: " +  batteryVoltage);
     }
 
     @Override
     public void onChargerVoltageUpdate(double chargerVoltage, double coilVoltage, long timestamp) {
     }
 
-    private int[] convertRGB2YUV(int color) {
-        ColorMatrix cm = new ColorMatrix();
-        cm.setRGB2YUV();
-        final float[] yuvArray = cm.getArray();
-
-        int r = Color.red(color);
-        int g = Color.green(color);
-        int b = Color.blue(color);
-        int[] result = new int[3];
-
-        // Adding a 127 U and V.
-        result[0] = floatToByte(yuvArray[0] * r + yuvArray[1] * g + yuvArray[2] * b);
-        result[1] = floatToByte(yuvArray[5] * r + yuvArray[6] * g + yuvArray[7] * b) + 127;
-        result[2] = floatToByte(yuvArray[10] * r + yuvArray[11] * g + yuvArray[12] * b) + 127;
-        return result;
-    }
-
-    private int floatToByte(float x) {
-        int n = java.lang.Math.round(x);
-        return n;
-    }
-
     public void analyze(int width, int height, @NonNull @NotNull int[] rgbbytes, Matrix frameToCropTransform) {
         if (matingController != null){
             String qrDecodedData = "";
-            int cropSize = 320;
-            Bitmap rgbFrameBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            rgbFrameBitmap.setPixels(rgbbytes, 0, width, 0, 0, width, height);
-            Bitmap croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Bitmap.Config.ARGB_8888);
-            final Canvas canvas = new Canvas(croppedBitmap);
-            canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
-            int[] cropedpixels = new int[cropSize*cropSize];
-            croppedBitmap.getPixels(cropedpixels, 0, cropSize, 0, 0, cropSize, cropSize);
+//            int cropSize = 320;
+//            Bitmap rgbFrameBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+//            rgbFrameBitmap.setPixels(rgbbytes, 0, width, 0, 0, width, height);
+//            Bitmap croppedBitmap = Bitmap.createBitmap(cropSize, cropSize, Bitmap.Config.ARGB_8888);
+//            final Canvas canvas = new Canvas(croppedBitmap);
+//            canvas.drawBitmap(rgbFrameBitmap, frameToCropTransform, null);
+//            int[] cropedpixels = new int[cropSize*cropSize];
+//            croppedBitmap.getPixels(cropedpixels, 0, cropSize, 0, 0, cropSize, cropSize);
 
-            RGBLuminanceSource source = new RGBLuminanceSource(cropSize, cropSize, cropedpixels);
+            RGBLuminanceSource source = new RGBLuminanceSource(width, height, rgbbytes);
             BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(source));
             try {
                 Result result = new QRCodeReader().decode(binaryBitmap);
@@ -314,12 +287,12 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 Log.v("qrcode", "QR Code found: " + qrDecodedData);
                 matingController.onQRCodeDetected(qrDecodedData);
             } catch (FormatException e) {
-                Log.v("qrcode", "QR Code cannot be decoded");
+//                Log.v("qrcode", "QR Code cannot be decoded");
             } catch (ChecksumException e) {
-                Log.v("qrcode", "QR Code error correction failed");
+//                Log.v("qrcode", "QR Code error correction failed");
                 e.printStackTrace();
             } catch (NotFoundException e) {
-                Log.v("qrcode", "QR Code not found");
+//                Log.v("qrcode", "QR Code not found");
             }
         }
     }

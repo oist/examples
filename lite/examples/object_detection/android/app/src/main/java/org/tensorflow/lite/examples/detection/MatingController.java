@@ -1,26 +1,21 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.content.Context;
-import android.content.Intent;
-import android.graphics.Bitmap;
 import android.util.Log;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
+import java.util.Arrays;
 import java.util.Random;
 
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
-import jp.oist.abcvlib.core.inputs.phone.ImageData;
-import jp.oist.abcvlib.core.inputs.phone.ImageDataSubscriber;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeDataSubscriber;
 import jp.oist.abcvlib.core.outputs.AbcvlibController;
-import jp.oist.abcvlib.util.QRCode;
 
 public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber {
 
     private QRCodePublisher qrCodePublisher;
     private float proximity = 0;
     private float minProximity = 0.2f;
+    private String qrDataDecoded;
 
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
@@ -49,6 +44,11 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float phi = 0;
     private float p_phi = 0.45f;
     private Context context;
+    private int[] genes = new int[10];
+    private int g = 0;
+    private int[] mateGenes = new int[10];
+    private Random random = new Random();
+    private int maxMutation = 4;
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
@@ -57,7 +57,11 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     @Override
     public void onQRCodeDetected(String qrDataDecoded) {
-
+        qrCodeVisible = true;
+//        Log.d("MatingController", "recvd gene string:" + qrDataDecoded);
+        this.qrDataDecoded = qrDataDecoded;
+        mateGenes = Arrays.stream(qrDataDecoded.substring(1, qrDataDecoded.length() - 1).split(","))
+                .map(String::trim).mapToInt(Integer::parseInt).toArray();
     }
 
     public void setQrCodePublisher(QRCodePublisher publisher){
@@ -66,12 +70,12 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     @Override
     public void run() {
+        Log.d("MatingController", "state: " + state);
         assert qrCodePublisher != null;
         if (targetAquired){
-            Log.d("MatingController", "state: " + state);
             switch (state){
                 case SEARCHING:
-//                    search();
+                    search();
                     state = State.DECIDING;
                     break;
                 case DECIDING:
@@ -99,18 +103,19 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                             break;
                         case FRONT:
                             if (qrCodeVisible){
-                                exchangeQRcode();
-                                updateGenes();
+                                exchangeGenes();
                                 state = State.FLEEING;
                             }
                             break;
                     }
                     break;
                 case FLEEING:
+                    flee();
                     break;
             }
         }else{
-//            search();
+            state = State.SEARCHING;
+            search();
         }
     }
 
@@ -147,9 +152,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private void approach(){
         // Turn on QR code
         // generate new qrcode using the string you want to encode. Use JSONObject.toString for more complex data sets.
-        Log.d("genQR", "mating controller");
-        qrCodePublisher.turnOnQRCode(new int[]{1,2,3});
-//        imageData.setQrcodescanning(true);
+        Log.d("MatingController", "int genes:" + Arrays.toString(genes));
+        Log.d("MatingController", "qrCodePublisher :" + qrCodePublisher.toString());
+
+        qrCodePublisher.turnOnQRCode(genes);
 
         // Todo check polarity on these turns. Could be opposite
         float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
@@ -183,17 +189,44 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         }
     }
 
-    private void exchangeQRcode(){}
-
-    private void updateGenes(){}
+    private void exchangeGenes(){
+        Log.d("MatingController", "Exhcnaged Genes");
+        Log.d("MatingController", "My Genes: " + Arrays.toString(genes));
+        Log.d("MatingController", "Mate's Genes: " + Arrays.toString(mateGenes));
+        g++;
+        if (g < genes.length - 1){
+            int mutation = rand.nextInt(maxMutation);
+            this.genes[g] = genes[g-1] + mateGenes[g-1] + mutation;
+            // Clear to make sure same data not repeatedly used
+//            this.qrDataDecoded = null;
+        }
+        // Just trying to prevent only one robot exchanging
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     public void setContext(Context context) {
         this.context = context;
     }
 
-    protected void setTarget(boolean targetAquired, float phi, float proximity){
+    protected void setTarget(boolean targetAquired, float phi, float proximity, String robot_face){
         this.targetAquired = targetAquired;
         this.phi = phi;
         this.proximity = proximity;
+        this.robotFacing = interpretFace(robot_face);
+    }
+
+    private RobotFacing interpretFace(String title){
+        switch (title){
+            case "robot_front":
+                return RobotFacing.FRONT;
+            case "robot_back":
+                return RobotFacing.BACK;
+            default:
+                return RobotFacing.INVISIBLE;
+        }
     }
 }
