@@ -18,7 +18,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     private QRCodePublisher qrCodePublisher;
     private float proximity = 0;
-    private float minProximity = 0.2f;
+    private float minProximity = 0.3f;
     private String qrDataDecoded;
 
     private enum State {
@@ -33,20 +33,20 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     }
     private RobotFacing robotFacing = RobotFacing.INVISIBLE;
     private boolean qrCodeVisible = false;
-    private float staticApproachSpeed = 0.5f;
+    private float staticApproachSpeed = 0.4f;
     private float randTurnSpeed = 0.5f;
     private float fleeSpeed = -0.8f;
     private float variableApproachSpeed = 0;
-    private float minSpeed = 0.0f;
+    private float minSpeed = 0.3f;
     private float maxSpeed = 0.5f;
     private Random rand = new Random();
     private int randomSign = rand.nextBoolean() ? 1 : -1;
-    private int fleeBackupTime = 3000; // Milliseconds to backup
+    private int fleeBackupTime = 1000; // Milliseconds to backup
     private int randTurnTime = 3000; // Milliseconds to turn in a random direction after dismounting
     private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
     private int searchSameSpeedCnt = 0;
     private float phi = 0;
-    private float p_phi = 0.45f;
+    private float p_phi = 0.25f;
     private Context context;
     private Genes genes = new Genes();
 
@@ -73,11 +73,15 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         if (targetAquired){
             switch (state){
                 case SEARCHING:
+                    // Turn off QR Code
+                    qrCodePublisher.turnOffQRCode();
                     search();
                     state = State.DECIDING;
                     qrCodePublisher.setFace(Face.MATE_DECIDING);
                     break;
                 case DECIDING:
+                    // Turn off QR Code
+                    qrCodePublisher.turnOffQRCode();
                     decide();
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.APPROACHING;
@@ -88,6 +92,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     }
                     break;
                 case APPROACHING:
+                    qrCodePublisher.turnOnQRCode(genes.genesToString());
                     approach();
                     Log.d("MatingController", "prox: " + proximity);
                     if (proximity > minProximity){
@@ -96,6 +101,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     }
                     break;
                 case WAITING:
+                    qrCodePublisher.turnOnQRCode(genes.genesToString());
                     waiting();
                     switch (robotFacing){
                         case INVISIBLE:
@@ -112,12 +118,17 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     }
                     break;
                 case FLEEING:
+                    // Turn off QR Code
+                    qrCodeVisible = false;
+                    qrCodePublisher.turnOffQRCode();
                     flee();
                     break;
             }
         }else{
             state = State.SEARCHING;
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
+            // Turn off QR Code
+            qrCodePublisher.turnOffQRCode();
             search();
         }
     }
@@ -153,8 +164,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     }
 
     private void approach(){
-        qrCodePublisher.turnOnQRCode(genes.genesToString());
-
         // Todo check polarity on these turns. Could be opposite
         float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
         float outputRight = (phi * p_phi) + (staticApproachSpeed);
@@ -166,9 +175,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     }
 
     private void flee(){
-        // Turn off QR Code
-        qrCodePublisher.turnOffQRCode();
-
         // Hard coded flee sequence
         try {
             setOutput(fleeSpeed, fleeSpeed);
