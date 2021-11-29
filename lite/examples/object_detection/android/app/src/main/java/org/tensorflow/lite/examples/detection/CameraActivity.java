@@ -147,7 +147,7 @@ public abstract class CameraActivity extends AppCompatActivity
 
     setContentView(R.layout.tfe_od_activity_camera);
     // create a new QRCode object with input args point to the FragmentManager and your layout fragment where you want to generate the qrcode image.
-    qrCode = new QRCode(getSupportFragmentManager(), R.id.container);
+    qrCode = new QRCode(getSupportFragmentManager(), R.id.qrCodeContainer);
 
     // Face
 
