@@ -14,6 +14,8 @@ import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
 public class ChargeController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber {
 
+    private QRCodePublisher qrCodePublisher;
+
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
     }
@@ -22,7 +24,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private float p_phi = 0.25f;
     private boolean targetAquired = false;
     private float proximity = 0; // from 0 to 1 where 1 is directly in front of the camera and zero being invisible.
-    private float staticApproachSpeed = 0.5f;
+    private float staticApproachSpeed = 0.7f;
     private float randTurnSpeed = 0.5f;
     private float dismountSpeed = -0.8f;
     private float variableApproachSpeed = 0;
@@ -69,11 +71,13 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             switch (state){
                 case SEARCHING:
                     state = State.DECIDING;
+                    qrCodePublisher.setFace(Face.CHARGING_DECIDING);
                     break;
                 case DECIDING:
                     Log.d("controller", "visibleFrameCount: "+ visibleFrameCount);
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.MOUNTING;
+                        qrCodePublisher.setFace(Face.CHARGING_MOUNTING);
                         visibleFrameCount = 0;
                     }else{
                         decide();
@@ -89,6 +93,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                 case DECIDING:
                     visibleFrameCount = 0;
                     state = State.SEARCHING;
+                    qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
                 case SEARCHING:
                     search();
                     break;
@@ -105,11 +110,13 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     if (chargerCurrent > chargingCurrent){
                         Log.d("controller", "puck mounted, charging");
                         state = State.CHARGING;
+                        qrCodePublisher.setFace(Face.CHARGING_CHARGING);
                         charge();
                     }else if (missedPuck){
                         Log.d("controller", "puck missed, dismounting");
                         mountTimer = null;
                         state = State.DISMOUNTING;
+                        qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                     }
                     break;
                 case CHARGING:
@@ -118,9 +125,11 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     if ((batteryVoltage > chargedVoltage)){
                         Log.d("controller", "finished charging, dismounting");
                         state = State.DISMOUNTING;
+                        qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                     }else if (chargerCurrent < chargingCurrent){
                         if (lowCurrentFrameCount > maxlowCurrentFrameCount){
                             state = State.DISMOUNTING;
+                            qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                             lowCurrentFrameCount = 0;
                         }else{
                             Log.d("controller", "lowCurrentFrameCnt = " + lowCurrentFrameCount);
@@ -133,6 +142,10 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     break;
             }
         }
+    }
+
+    public void setQrCodePublisher(QRCodePublisher publisher){
+        this.qrCodePublisher = publisher;
     }
 
     private void decide(){
@@ -191,6 +204,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             Thread.sleep(randTurnTime);
 
             state = State.SEARCHING;
+            qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

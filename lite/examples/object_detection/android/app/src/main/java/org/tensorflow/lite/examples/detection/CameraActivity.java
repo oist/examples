@@ -38,9 +38,10 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Trace;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
-import androidx.appcompat.widget.Toolbar;
 
 import android.util.Log;
 import android.util.Size;
@@ -53,11 +54,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
@@ -127,6 +126,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private Handler handler_controller;
   protected ScheduledExecutorServiceWithException controllerExecutor;
   protected ScheduledExecutorServiceWithException qrCodeDetectionExecutor;
+  private ImageView face;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
@@ -143,12 +143,27 @@ public abstract class CameraActivity extends AppCompatActivity
             1, new ProcessPriorityThreadFactory(Thread.NORM_PRIORITY, "qrCodeDetection")
     );
 
+
+
     setContentView(R.layout.tfe_od_activity_camera);
     // create a new QRCode object with input args point to the FragmentManager and your layout fragment where you want to generate the qrcode image.
     qrCode = new QRCode(getSupportFragmentManager(), R.id.container);
-    Toolbar toolbar = findViewById(R.id.toolbar);
-    setSupportActionBar(toolbar);
-    getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+    // Face
+
+    // Instantiate an ImageView and define its properties
+    face = findViewById(R.id.face);
+
+    // set the ImageView bounds to match the Drawable's dimensions
+//    imageView.setAdjustViewBounds(true);
+//    imageView.setLayoutParams(new ViewGroup.LayoutParams(
+//            ViewGroup.LayoutParams.WRAP_CONTENT,
+//            ViewGroup.LayoutParams.WRAP_CONTENT));
+
+
+//    Toolbar toolbar = findViewById(R.id.toolbar);
+//    setSupportActionBar(toolbar);
+//    getSupportActionBar().setDisplayShowTitleEnabled(false);
 
     if (hasPermission()) {
       setFragment();
@@ -223,15 +238,50 @@ public abstract class CameraActivity extends AppCompatActivity
     Log.e("race", "7");
   }
 
-  public void turnOnQRCode(int[] genes){
+  public void turnOnQRCode(String geneStr){
     if (qrCode == null){
       Log.d("genQR", "qrCode is null");
     }
     if (!qrCodeOn && qrCode != null){
-      String geneStr = Arrays.toString(genes);
       Log.d("genQR", "int genes: " + geneStr);
       qrCode.generate(geneStr);
       qrCodeOn = true;
+    }
+  }
+
+  @Override
+  public void setFace(Face face) {
+    switch (face){
+      case NORMAL:
+        this.face.setImageResource(R.drawable.normal);
+        break;
+      case CHARGING_SEARCHING:
+        this.face.setImageResource(R.drawable.normal);
+        break;
+      case CHARGING_CHARGING:
+        this.face.setImageResource(R.drawable.charging_charging);
+        break;
+      case CHARGING_DECIDING:
+        this.face.setImageResource(R.drawable.charging_deciding);
+        break;
+      case CHARGING_DISMOUNTING:
+        this.face.setImageResource(R.drawable.charging_dismounting);
+        break;
+      case MATE_APPROACHING:
+        this.face.setImageResource(R.drawable.mate_approaching);
+        break;
+      case MATE_DECIDING:
+        this.face.setImageResource(R.drawable.mate_deciding);
+        break;
+      case MATE_WAITING:
+        this.face.setImageResource(R.drawable.mate_waiting);
+        break;
+      case MATE_FLEEING:
+        this.face.setImageResource(R.drawable.mate_fleeing);
+        break;
+      case MATE_SEARCHING:
+        this.face.setImageResource(R.drawable.mate_searching);
+        break;
     }
   }
 
@@ -545,11 +595,11 @@ public abstract class CameraActivity extends AppCompatActivity
 
       camera2Fragment.setCamera(cameraId);
       fragment = camera2Fragment;
+//      camera2Fragment.openCamera(1080, 2088);
     } else {
       fragment =
           new LegacyCameraConnectionFragment(this, getLayoutId(), getDesiredPreviewFrameSize());
     }
-
     getFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
   }
 

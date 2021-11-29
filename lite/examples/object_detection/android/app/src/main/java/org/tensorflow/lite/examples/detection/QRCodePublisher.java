@@ -1,6 +1,7 @@
 package org.tensorflow.lite.examples.detection;
 
 public interface QRCodePublisher {
-    void turnOnQRCode(int[] genes);
+    void turnOnQRCode(String genes);
     void turnOffQRCode();
+    void setFace(Face face);
 }
