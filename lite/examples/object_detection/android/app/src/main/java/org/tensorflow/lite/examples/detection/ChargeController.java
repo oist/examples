@@ -80,11 +80,13 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                         qrCodePublisher.setFace(Face.CHARGING_MOUNTING);
                         visibleFrameCount = 0;
                     }else{
+                        qrCodePublisher.setFace(Face.CHARGING_DECIDING);
                         decide();
                         visibleFrameCount++;
                     }
                     break;
                 case MOUNTING:
+                    qrCodePublisher.setFace(Face.CHARGING_MOUNTING);
                     mount();
             }
         }
