@@ -14,6 +14,8 @@ public class Genes implements Runnable{
     private ScheduledExecutorServiceWithException toneExecutor = new ScheduledExecutorServiceWithException(1, new ProcessPriorityThreadFactory(Thread.NORM_PRIORITY, "TonePlayer"));
     private int[] genes = new int[10];
     private int g = 0;
+    private int currentGene = 0;
+    private int previousGene = 0;
     private Random random = new Random();
     private int maxMutation = 4;
     private PerfectTune perfectTune = new PerfectTune();
@@ -44,11 +46,11 @@ public class Genes implements Runnable{
 
         final int[] mateGenesInt = parseIncomingGenes(mateGenes);
 
-        if (g < genes.length - 2){
-            g++;
-            int mutation = rand.nextInt(maxMutation);
-            this.genes[g] = genes[g-1] + mateGenesInt[g-1] + mutation;
-        }
+        currentGene = g++ % genes.length;
+        int mutation = rand.nextInt(maxMutation);
+        this.genes[currentGene] = genes[previousGene] + mateGenesInt[previousGene] + mutation;
+        previousGene = currentGene;
+
         toneExecutor.execute(this);
         try {
             Thread.sleep(4000);
