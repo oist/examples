@@ -268,19 +268,19 @@ public abstract class CameraActivity extends AppCompatActivity
         this.face.setImageResource(R.drawable.charging_dismounting);
         break;
       case MATE_APPROACHING:
-        this.face.setImageResource(R.drawable.mate_approaching);
+        this.face.setImageResource(R.drawable.mating_approaching);
         break;
       case MATE_DECIDING:
-        this.face.setImageResource(R.drawable.mate_deciding);
+        this.face.setImageResource(R.drawable.mating_deciding);
         break;
       case MATE_WAITING:
-        this.face.setImageResource(R.drawable.mate_waiting);
+        this.face.setImageResource(R.drawable.mating_waiting);
         break;
       case MATE_FLEEING:
-        this.face.setImageResource(R.drawable.mate_fleeing);
+        this.face.setImageResource(R.drawable.mating_fleeing);
         break;
       case MATE_SEARCHING:
-        this.face.setImageResource(R.drawable.mate_searching);
+        this.face.setImageResource(R.drawable.mating_searching);
         break;
     }
   }
