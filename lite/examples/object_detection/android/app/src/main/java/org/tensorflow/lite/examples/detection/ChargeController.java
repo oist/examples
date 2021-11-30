@@ -15,6 +15,7 @@ import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 public class ChargeController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber {
 
     private QRCodePublisher qrCodePublisher;
+    private UsageStats usageStats;
 
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
@@ -41,7 +42,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ScheduledFuture<?> dismountTimer;
     private ScheduledFuture<?> randTurnTimer;
     private int missTime = 7000; // Milliseconds to wait before assuming you've missed the puck.
-    private int dismountTime = 3000; // Milliseconds to backup
+    private int dismountTime = 1000; // Milliseconds to backup
     private int randTurnTime = 3000; // Milliseconds to turn in a random direction after dismounting
     private boolean missedPuck = false;
 
@@ -71,12 +72,14 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             switch (state){
                 case SEARCHING:
                     state = State.DECIDING;
+                    usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_DECIDING);
                     break;
                 case DECIDING:
                     Log.d("controller", "visibleFrameCount: "+ visibleFrameCount);
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.MOUNTING;
+                        usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_MOUNTING);
                         visibleFrameCount = 0;
                     }else{
@@ -95,6 +98,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                 case DECIDING:
                     visibleFrameCount = 0;
                     state = State.SEARCHING;
+                    usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
                 case SEARCHING:
                     search();
@@ -112,12 +116,14 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     if (chargerCurrent > chargingCurrent){
                         Log.d("controller", "puck mounted, charging");
                         state = State.CHARGING;
+                        usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_CHARGING);
                         charge();
                     }else if (missedPuck){
                         Log.d("controller", "puck missed, dismounting");
                         mountTimer = null;
                         state = State.DISMOUNTING;
+                        usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                     }
                     break;
@@ -127,10 +133,12 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     if ((batteryVoltage > chargedVoltage)){
                         Log.d("controller", "finished charging, dismounting");
                         state = State.DISMOUNTING;
+                        usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                     }else if (chargerCurrent < chargingCurrent){
                         if (lowCurrentFrameCount > maxlowCurrentFrameCount){
                             state = State.DISMOUNTING;
+                            usageStats.onStateChange("Charging_" + state.name());
                             qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                             lowCurrentFrameCount = 0;
                         }else{
@@ -148,6 +156,10 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
 
     public void setQrCodePublisher(QRCodePublisher publisher){
         this.qrCodePublisher = publisher;
+    }
+
+    public void setUsageStats(UsageStats usageStats){
+        this.usageStats = usageStats;
     }
 
     private void decide(){
@@ -206,6 +218,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             Thread.sleep(randTurnTime);
 
             state = State.SEARCHING;
+            usageStats.onStateChange("Charging_" + state.name());
             qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
         } catch (InterruptedException e) {
             e.printStackTrace();

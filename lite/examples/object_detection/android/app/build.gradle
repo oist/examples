@@ -73,6 +73,7 @@ dependencies {
     implementation 'com.google.zxing:core:3.4.1'
     implementation 'com.google.zxing:android-integration:3.3.0'
     implementation 'com.github.Lokarzz:perfectTune:1.0.5'
+    implementation "androidx.lifecycle:lifecycle-common-java8:2.4.0"
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'com.google.truth:truth:1.0.1'

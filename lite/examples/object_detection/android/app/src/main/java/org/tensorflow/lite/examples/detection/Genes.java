@@ -12,7 +12,7 @@ import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
 public class Genes implements Runnable{
     private ScheduledExecutorServiceWithException toneExecutor = new ScheduledExecutorServiceWithException(1, new ProcessPriorityThreadFactory(Thread.NORM_PRIORITY, "TonePlayer"));
-    private int[] genes = new int[10];
+    private int[] genes = new int[3];
     private int g = 0;
     private int currentGene = 0;
     private int previousGene = 0;

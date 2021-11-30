@@ -77,13 +77,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float center = 320f * 0.2f; // As camera is offcenter, this is not exactly half of frame
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
-    private float minMatingVoltage = 3.5f;
-    private float maxChargingVoltage = 3.4f;
+    private float minMatingVoltage = 3.0f;
+    private float maxChargingVoltage = 3.2f;
     private ImageData imageData;
     private PublisherManager publisherManager;
     private WheelData wheelData;
     private BatteryData batteryData;
     private QRCodeData qrCodeData;
+    private UsageStats usageStats;
 
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
@@ -174,6 +175,9 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     public void sendControl(Detector.Recognition target_robot, Detector.Recognition target_puck){
         switch (state){
             case MATING:
+                if (chargeController.isRunning()){
+                    chargeController.stopController();
+                }
                 if (matingController.isRunning()){
                     if (target_robot.getBBArea() > 0){
                         float phi = (center - target_robot.getLocation().centerX()) / (320f/2f);
@@ -184,13 +188,13 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                         matingController.setTarget(false, 0, 0, "");
                     }
                 }else{
-                    if (chargeController.isRunning()){
-                        chargeController.stopController();
-                    }
                     matingController.startController();
                 }
                 break;
             case CHARGING:
+                if (matingController.isRunning()){
+                    matingController.stopController();
+                }
                 if (chargeController.isRunning()){
                     if (target_puck.getBBArea() > 0){
                         float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
@@ -202,9 +206,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }
                 }else{
                     chargeController.startController();
-                    if (matingController.isRunning()){
-                        matingController.stopController();
-                    }
                 }
                 break;
         }
@@ -222,11 +223,15 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        usageStats = (UsageStats) new UsageStats(getApplicationContext());
+
         chargeController = (ChargeController) new ChargeController().setInitDelay(0)
                 .setName("chargeController").setThreadCount(1)
                 .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
         chargeController.setQrCodePublisher(qrCodePublisher);
+        chargeController.setUsageStats(usageStats);
 
         matingController = (MatingController) new MatingController().setInitDelay(0)
                 .setName("matingController").setThreadCount(1)
@@ -235,12 +240,15 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
         matingController.setContext(this);
         matingController.setQrCodePublisher(qrCodePublisher);
+        matingController.setUsageStats(usageStats);
 
         publisherManager = new PublisherManager();
         wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
-        wheelData.addSubscriber(chargeController).addSubscriber(matingController);
+        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats);
         batteryData = new BatteryData.Builder(this, publisherManager, abcvlibLooper).build();
-        batteryData.addSubscriber(chargeController).addSubscriber(this);
+        batteryData.addSubscriber(chargeController).addSubscriber(this).addSubscriber(usageStats);
+
+        usageStats.start();
 
         Log.d("race", "init publishers start");
         publisherManager.initializePublishers();

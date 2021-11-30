@@ -1,12 +1,18 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.content.Context;
+import android.os.CountDownTimer;
 import android.util.Log;
 
 import com.karlotoy.perfectune.instance.PerfectTune;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.Timer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeDataSubscriber;
@@ -20,6 +26,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float proximity = 0;
     private float minProximity = 0.3f;
     private String qrDataDecoded;
+    private UsageStats usageStats;
 
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
@@ -49,6 +56,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float p_phi = 0.25f;
     private Context context;
     private Genes genes = new Genes();
+    private long waitingTime = 15000;
+    private ScheduledFuture<?> waitingFuture;
+    private boolean waitingTooLong = false;
+    private ScheduledExecutorService waitingTimer = Executors.newSingleThreadScheduledExecutor();
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
@@ -66,6 +77,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         this.qrCodePublisher = publisher;
     }
 
+    public void setUsageStats(UsageStats usageStats){
+        this.usageStats = usageStats;
+    }
+
     @Override
     public void run() {
         Log.d("MatingController", "state: " + state);
@@ -77,6 +92,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     qrCodePublisher.turnOffQRCode();
                     search();
                     state = State.DECIDING;
+                    usageStats.onStateChange("Mating_" + state.name());
                     qrCodePublisher.setFace(Face.MATE_DECIDING);
                     break;
                 case DECIDING:
@@ -85,6 +101,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     decide();
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.APPROACHING;
+                        usageStats.onStateChange("Mating_" + state.name());
                         qrCodePublisher.setFace(Face.MATE_APPROACHING);
                         visibleFrameCount = 0;
                     }else{
@@ -97,24 +114,35 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     Log.d("MatingController", "prox: " + proximity);
                     if (proximity > minProximity){
                         state = State.WAITING;
+                        usageStats.onStateChange("Mating_" + state.name());
                         qrCodePublisher.setFace(Face.MATE_WAITING);
+                        waitingFuture = waitingTimer.schedule(() -> {
+                            waitingTooLong = true;
+                        }, waitingTime, TimeUnit.MILLISECONDS);
                     }
                     break;
                 case WAITING:
-                    qrCodePublisher.turnOnQRCode(genes.genesToString());
-                    waiting();
-                    switch (robotFacing){
-                        case INVISIBLE:
-                            break;
-                        case BACK:
-                            break;
-                        case FRONT:
-                            if (qrCodeVisible){
-                                genes.exchangeGenes(qrDataDecoded);
-                                state = State.FLEEING;
-                                qrCodePublisher.setFace(Face.MATE_FLEEING);
-                            }
-                            break;
+                    if (!waitingTooLong){
+                        qrCodePublisher.turnOnQRCode(genes.genesToString());
+                        waiting();
+                        switch (robotFacing){
+                            case INVISIBLE:
+                                break;
+                            case BACK:
+                                break;
+                            case FRONT:
+                                if (qrCodeVisible){
+                                    genes.exchangeGenes(qrDataDecoded);
+                                    state = State.FLEEING;
+                                    usageStats.onStateChange("Mating_" + state.name());
+                                    qrCodePublisher.setFace(Face.MATE_FLEEING);
+                                }
+                                break;
+                        }
+                    }else {
+                        // If you've waited too long (stuck) then flee (searching will just get stuck again next loop)
+                        state = State.FLEEING;
+                        waitingTooLong = false;
                     }
                     break;
                 case FLEEING:
@@ -126,7 +154,12 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             }
         }else{
             state = State.SEARCHING;
+            usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
+            // If you were waiting and mate went out of view cancle the waiting timer before searching.
+            if (waitingFuture != null){
+                waitingFuture.cancel(true);
+            }
             // Turn off QR Code
             qrCodePublisher.turnOffQRCode();
             search();
@@ -188,6 +221,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             Thread.sleep(randTurnTime);
 
             state = State.SEARCHING;
+            usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
         } catch (InterruptedException e) {
             e.printStackTrace();
