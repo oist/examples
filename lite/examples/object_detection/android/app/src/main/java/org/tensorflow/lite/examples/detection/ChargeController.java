@@ -30,7 +30,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private float randTurnSpeed = 0.5f;
     private float dismountSpeed = -0.8f;
     private float variableApproachSpeed = 0;
-    private float minSpeed = 0.0f;
+    private float minSpeed = 0.3f;
     private float maxSpeed = 0.5f;
     private Random rand = new Random();
     // Random choice between -1 and 1.
@@ -222,6 +222,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
      * Just a way of generating new random speeds on the wheels.
      */
     private void startNewSearch(){
+//        float maxSpeed = this.maxSpeed * batteryVoltage;
         randomSign = rand.nextBoolean() ? 1 : -1;
         float randomSpeed = minSpeed + (float) Math.random() * (maxSpeed - minSpeed);
         float outputLeft = randomSign * randomSpeed;
