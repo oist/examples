@@ -59,15 +59,16 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
 
     public UsageStats(Context context){
         dir = context.getFilesDir();
-        startTime = Long.toString(System.currentTimeMillis());
+//        startTime = Long.toString(System.currentTimeMillis());
+        startTime = "stats";
 
         try{
             file = new File(dir + File.separator + startTime + ".csv");
             if (!file.exists()){
                 boolean created = file.createNewFile();
                 Log.v(TAG, "Created new file? " + file.getAbsolutePath() + " " + created);
-                fileWriter = new FileWriter(file.getAbsolutePath(),false);
             }
+            fileWriter = new FileWriter(file.getAbsolutePath(),false);
             fileWriter.write(header);
         }catch(Exception e){
             ErrorHandler.eLog(TAG, "Error when saving data to file", e, true);
