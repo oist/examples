@@ -27,6 +27,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float minProximity = 0.3f;
     private String qrDataDecoded;
     private UsageStats usageStats;
+    private long getFreeTime = 1000;
 
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
@@ -56,14 +57,14 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float p_phi = 0.25f;
     private Context context;
     private Genes genes = new Genes();
-    private long waitingTime = 15000;
-    private ScheduledFuture<?> waitingFuture;
-    private boolean waitingTooLong = false;
-    private ScheduledExecutorService waitingTimer = Executors.newSingleThreadScheduledExecutor();
+    private int speedL = 0;
+    private int speedR = 0;
+    private StuckDetector stuckDetector = new StuckDetector();
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
-
+        this.speedL = speedL;
+        this.speedR = speedR;
     }
 
     @Override
@@ -85,6 +86,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     public void run() {
         Log.d("MatingController", "state: " + state);
         assert qrCodePublisher != null;
+        if (stuckDetector.isStuck()){
+            // do some predefined aggressive action
+            getFree();
+        }
         if (targetAquired){
             switch (state){
                 case SEARCHING:
@@ -92,6 +97,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     qrCodePublisher.turnOffQRCode();
                     search();
                     state = State.DECIDING;
+                    stuckDetector.startTimer(10000);
                     usageStats.onStateChange("Mating_" + state.name());
                     qrCodePublisher.setFace(Face.MATE_DECIDING);
                     break;
@@ -101,6 +107,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     decide();
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.APPROACHING;
+                        stuckDetector.startTimer();
                         usageStats.onStateChange("Mating_" + state.name());
                         qrCodePublisher.setFace(Face.MATE_APPROACHING);
                         visibleFrameCount = 0;
@@ -114,55 +121,82 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     Log.d("MatingController", "prox: " + proximity);
                     if (proximity > minProximity){
                         state = State.WAITING;
+                        stuckDetector.startTimer(15000);
                         usageStats.onStateChange("Mating_" + state.name());
                         qrCodePublisher.setFace(Face.MATE_WAITING);
-                        waitingFuture = waitingTimer.schedule(() -> {
-                            waitingTooLong = true;
-                        }, waitingTime, TimeUnit.MILLISECONDS);
                     }
                     break;
                 case WAITING:
-                    if (!waitingTooLong){
-                        qrCodePublisher.turnOnQRCode(genes.genesToString());
-                        waiting();
-                        switch (robotFacing){
-                            case INVISIBLE:
-                                break;
-                            case BACK:
-                                break;
-                            case FRONT:
-                                if (qrCodeVisible){
-                                    genes.exchangeGenes(qrDataDecoded);
-                                    state = State.FLEEING;
-                                    usageStats.onStateChange("Mating_" + state.name());
-                                    qrCodePublisher.setFace(Face.MATE_FLEEING);
-                                }
-                                break;
-                        }
-                    }else {
-                        // If you've waited too long (stuck) then flee (searching will just get stuck again next loop)
-                        state = State.FLEEING;
-                        waitingTooLong = false;
+                    qrCodePublisher.turnOnQRCode(genes.genesToString());
+                    waiting();
+                    switch (robotFacing){
+                        case INVISIBLE:
+                            break;
+                        case BACK:
+                            break;
+                        case FRONT:
+                            if (qrCodeVisible){
+                                genes.exchangeGenes(qrDataDecoded);
+                                state = State.FLEEING;
+                                stuckDetector.startTimer();
+                                usageStats.onStateChange("Mating_" + state.name());
+                                qrCodePublisher.setFace(Face.MATE_FLEEING);
+                            }
+                            break;
                     }
-                    break;
                 case FLEEING:
                     // Turn off QR Code
                     qrCodeVisible = false;
                     qrCodePublisher.turnOffQRCode();
                     flee();
+                    state = State.SEARCHING;
+                    stuckDetector.startTimer();
+                    usageStats.onStateChange("Mating_" + state.name());
+                    qrCodePublisher.setFace(Face.MATE_SEARCHING);
                     break;
             }
         }else{
             state = State.SEARCHING;
+            stuckDetector.startTimer();
             usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
-            // If you were waiting and mate went out of view cancle the waiting timer before searching.
-            if (waitingFuture != null){
-                waitingFuture.cancel(true);
-            }
             // Turn off QR Code
             qrCodePublisher.turnOffQRCode();
             search();
+        }
+    }
+
+    private void getFree(){
+        // Hard coded getFree sequence
+        try {
+            //1st aggressive motion
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            float outputLeft = (float) randomSign;
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            float outputRight = (float) randomSign;
+            setOutput(outputLeft, outputRight);
+            Thread.sleep(getFreeTime);
+            //2nd aggressive motion
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputLeft = (float) randomSign;
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputRight = (float) randomSign;
+            setOutput(outputLeft, outputRight);
+            Thread.sleep(getFreeTime);
+            //3rd aggressive motion
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputLeft = (float) randomSign;
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputRight = (float) randomSign;
+            setOutput(outputLeft, outputRight);
+            Thread.sleep(getFreeTime);
+
+            state = State.SEARCHING;
+            stuckDetector.startTimer();
+            usageStats.onStateChange("Mating_" + state.name());
+            qrCodePublisher.setFace(Face.MATE_SEARCHING);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -219,10 +253,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             setOutput(outputLeft, -outputLeft);
             Log.d("controller", "rand turn at speedL: " + outputLeft);
             Thread.sleep(randTurnTime);
-
-            state = State.SEARCHING;
-            usageStats.onStateChange("Mating_" + state.name());
-            qrCodePublisher.setFace(Face.MATE_SEARCHING);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

@@ -15,7 +15,29 @@ public class StuckDetector {
 
     }
 
+    /**
+     * Default is 15seconds to assume stuck
+     */
     public synchronized void startTimer(){
+        // If the scheduled future is finished (determined to be stuck)
+        if (whenStuck.isDone()){
+            whenStuck = stuckTimer.schedule(() -> {
+                stuck = true;
+            }, stuckTime, TimeUnit.MILLISECONDS);
+        }
+        // else cancel the timer and restart it.
+        else {
+            whenStuck.cancel(true);
+            whenStuck = stuckTimer.schedule(() -> {
+                stuck = true;
+            }, stuckTime, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * @param stuckTime time in milliseconds to wait before assuming stuck
+     */
+    public synchronized void startTimer(int stuckTime){
         // If the scheduled future is finished (determined to be stuck)
         if (whenStuck.isDone()){
             whenStuck = stuckTimer.schedule(() -> {
