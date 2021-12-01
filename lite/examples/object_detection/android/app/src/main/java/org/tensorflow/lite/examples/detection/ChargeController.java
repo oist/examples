@@ -123,6 +123,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                         Log.d("controller", "puck missed, dismounting");
                         mountTimer.cancel(true);
                         mountTimer = null;
+                        missedPuck = false; //todo is this the best place?
                         state = State.DISMOUNTING;
                         usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
@@ -205,8 +206,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     }
 
     private void dismount(){
-        missedPuck = false; //todo is this the best place?
-
         // Hard coded dismount sequence
         try {
             setOutput(dismountSpeed, dismountSpeed);
