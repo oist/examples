@@ -121,6 +121,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                         charge();
                     }else if (missedPuck){
                         Log.d("controller", "puck missed, dismounting");
+                        mountTimer.cancel(true);
                         mountTimer = null;
                         state = State.DISMOUNTING;
                         usageStats.onStateChange("Charging_" + state.name());
