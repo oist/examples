@@ -130,12 +130,13 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                 case CHARGING:
                     Log.d("controller", "charge pin: " + chargerCurrent);
                     Log.d("controller", "battery voltage: " + batteryVoltage);
-                    if ((batteryVoltage > chargedVoltage)){
-                        Log.d("controller", "finished charging, dismounting");
-                        state = State.DISMOUNTING;
-                        usageStats.onStateChange("Charging_" + state.name());
-                        qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
-                    }else if (chargerCurrent < chargingCurrent){
+//                    if ((batteryVoltage > chargedVoltage)){
+//                        Log.d("controller", "finished charging, dismounting");
+//                        state = State.DISMOUNTING;
+//                        usageStats.onStateChange("Charging_" + state.name());
+//                        qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
+//                    }
+                    if (chargerCurrent < chargingCurrent){
                         if (lowCurrentFrameCount > maxlowCurrentFrameCount){
                             state = State.DISMOUNTING;
                             usageStats.onStateChange("Charging_" + state.name());
