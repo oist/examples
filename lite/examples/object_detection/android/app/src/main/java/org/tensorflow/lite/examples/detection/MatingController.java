@@ -85,6 +85,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     @Override
     public void startController() {
         state = State.SEARCHING;
+        flipToArms();
         stuckDetector.startTimer(15000);
         usageStats.onStateChange("Mating_" + state.name());
         qrCodePublisher.setFace(Face.MATE_DECIDING);
@@ -99,6 +100,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             // do some predefined aggressive action
             getFree();
             state = State.SEARCHING;
+            flipToArms();
             stuckDetector.startTimer(15000);
             usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
@@ -163,6 +165,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     qrCodePublisher.turnOffQRCode();
                     flee();
                     state = State.SEARCHING;
+                    flipToArms();
                     stuckDetector.startTimer();
                     usageStats.onStateChange("Mating_" + state.name());
                     qrCodePublisher.setFace(Face.MATE_SEARCHING);
@@ -170,6 +173,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             }
         }else{
             state = State.SEARCHING;
+            flipToArms();
             stuckDetector.startTimer();
             usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
@@ -203,6 +207,22 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             outputRight = (float) randomSign;
             setOutput(outputLeft, outputRight);
             Thread.sleep(getFreeTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void flipToArms(){
+        // Hard coded flip to arms sequence
+        float[] slowGrad = new float[]{-1.0f, -0.9f, -0.8f, -0.7f, -0.6f, -0.5f, -0.4f, -0.3f};
+        try {
+            setOutput(1, 1);
+            Thread.sleep(300);
+            for (float speed:slowGrad){
+                setOutput(speed,speed);
+                Log.d("MateController", "Flip Sequence");
+                Thread.sleep(100);
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

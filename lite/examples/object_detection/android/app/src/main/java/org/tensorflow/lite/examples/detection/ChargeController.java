@@ -21,7 +21,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
     }
-    private State state = State.SEARCHING;
+    private State state;
     private float phi = 0;
     private float p_phi = 0.25f;
     private boolean targetAquired = false;
@@ -71,6 +71,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     @Override
     public void startController() {
         state = State.SEARCHING;
+        flipToArms();
         stuckDetector.startTimer(15000);
         usageStats.onStateChange("Charging_" + state.name());
         qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
@@ -82,6 +83,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             Log.d("ChargeController", "I'm Stuck!");
             getFree();
             state = State.SEARCHING;
+            flipToArms();
             stuckDetector.startTimer(15000);
             usageStats.onStateChange("Charging_" + state.name());
             qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
@@ -119,6 +121,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                 case DECIDING:
                     visibleFrameCount = 0;
                     state = State.SEARCHING;
+                    flipToArms();
                     stuckDetector.startTimer(15000);
                     usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
@@ -154,7 +157,9 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     break;
                 case DISMOUNTING:
                     dismount();
+                    flipToArms();
                     state = State.SEARCHING;
+                    flipToArms();
                     stuckDetector.startTimer(15000);
                     usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
@@ -236,6 +241,22 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         setOutput(0, 0);
     }
 
+    private void flipToArms(){
+        // Hard coded flip to arms sequence
+        float[] slowGrad = new float[]{-1.0f, -0.9f, -0.8f, -0.7f, -0.6f, -0.5f, -0.4f, -0.3f};
+        try {
+            setOutput(1, 1);
+            Thread.sleep(300);
+            for (float speed:slowGrad){
+                setOutput(speed,speed);
+                Log.d("ChargeController", "Flip Sequence");
+                Thread.sleep(100);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void mount(){
         float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
         float outputRight = (phi * p_phi) + (staticApproachSpeed);
@@ -271,6 +292,14 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         this.targetAquired = targetAquired;
         this.phi = phi;
         this.proximity = proximity;
+    }
+
+    @Override
+    protected synchronized void setOutput(float left, float right) {
+        // Scale output based on battery voltage so wheels to slow down too much. Normalized to full battery around 3.3.
+        left = left / (this.batteryVoltage / 3.3f);
+        right = right / (this.batteryVoltage / 3.3f);
+        super.setOutput(left, right);
     }
 
     @Override
