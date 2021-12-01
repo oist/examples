@@ -1,4 +1,4 @@
-from typing import Union, Any
+from typing import Union, Any, List
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,14 +9,15 @@ from pandas import Series, DataFrame
 from pandas.core.generic import NDFrame
 from pandas.io.parsers import TextFileReader
 
-file = sys.argv[0]
-file = './1638259925101.csv'
+file = sys.argv[1]
 df: pd.DataFrame = pd.read_csv(file)
 
+axes: List[plt.Axes]
 fig, axes = plt.subplots(nrows=4, ncols=1)
 
 axes[0].plot(df['BatteryLevel'])
-axes[1].scatter([0, 1, 2, 3], df['State'])
+axes[0].set_ylim(2.8, 3.2)
+axes[1].plot(df['State'])
 axes[2].plot(df['DistanceL'])
 axes[2].plot(df['DistanceR'])
 axes[3].plot(df['SpeedL'])
