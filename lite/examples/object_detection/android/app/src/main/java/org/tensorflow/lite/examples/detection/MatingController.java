@@ -27,12 +27,12 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float minProximity = 0.3f;
     private String qrDataDecoded;
     private UsageStats usageStats;
-    private long getFreeTime = 1000;
+    private long getFreeTime = 500;
 
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
     }
-    private State state = State.SEARCHING;
+    private State state;
     private boolean targetAquired = false;
     private int visibleFrameCount = 0;
     private int minVisibleFrameCount = 10; // A means to avoid random misclassified distractors
@@ -83,12 +83,25 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     }
 
     @Override
+    public void startController() {
+        state = State.SEARCHING;
+        stuckDetector.startTimer(15000);
+        usageStats.onStateChange("Mating_" + state.name());
+        qrCodePublisher.setFace(Face.MATE_DECIDING);
+        super.startController();
+    }
+
+    @Override
     public void run() {
         Log.d("MatingController", "state: " + state);
         assert qrCodePublisher != null;
         if (stuckDetector.isStuck()){
             // do some predefined aggressive action
             getFree();
+            state = State.SEARCHING;
+            stuckDetector.startTimer(15000);
+            usageStats.onStateChange("Mating_" + state.name());
+            qrCodePublisher.setFace(Face.MATE_SEARCHING);
         }
         if (targetAquired){
             switch (state){
@@ -190,11 +203,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             outputRight = (float) randomSign;
             setOutput(outputLeft, outputRight);
             Thread.sleep(getFreeTime);
-
-            state = State.SEARCHING;
-            stuckDetector.startTimer(15000);
-            usageStats.onStateChange("Mating_" + state.name());
-            qrCodePublisher.setFace(Face.MATE_SEARCHING);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
