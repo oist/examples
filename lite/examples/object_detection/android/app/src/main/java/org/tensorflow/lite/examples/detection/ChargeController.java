@@ -16,6 +16,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
 
     private QRCodePublisher qrCodePublisher;
     private UsageStats usageStats;
+    private long getFreeTime = 1000;
 
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
@@ -62,16 +63,22 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ExponentialMovingAverage chargingVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
 
+    private StuckDetector stuckDetector = new StuckDetector();
+
 
     private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
     private int searchSameSpeedCnt = 0;
 
     public void run(){
+        if (stuckDetector.isStuck()){
+            getFree();
+        }
         Log.d("ChargeController", "state: " + state);
         if (targetAquired){
             switch (state){
                 case SEARCHING:
                     state = State.DECIDING;
+                    stuckDetector.startTimer(5000);
                     usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_DECIDING);
                     break;
@@ -79,6 +86,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     Log.d("controller", "visibleFrameCount: "+ visibleFrameCount);
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.MOUNTING;
+                        stuckDetector.startTimer(5000);
                         usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_MOUNTING);
                         visibleFrameCount = 0;
@@ -98,6 +106,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                 case DECIDING:
                     visibleFrameCount = 0;
                     state = State.SEARCHING;
+                    stuckDetector.startTimer(15000);
                     usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
                 case SEARCHING:
@@ -105,42 +114,22 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     break;
                 case MOUNTING:
                     mount();
-                    if (mountTimer == null){
-                        Log.d("controller", "starting mount timer");
-                        mountTimer = executor.schedule(() -> missedPuck = true, missTime, TimeUnit.MILLISECONDS);
-                    }
-                    Log.d("controller", "charger pin: " + chargerCurrent);
-                    Log.d("controller", "coil pin: " + chargerCurrent);
-                    Log.d("controller", "missedpuck: " + missedPuck);
-
                     if (chargerCurrent > chargingCurrent){
                         Log.d("controller", "puck mounted, charging");
                         state = State.CHARGING;
+                        stuckDetector.startTimer(60000);
                         usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_CHARGING);
                         charge();
-                    }else if (missedPuck){
-                        Log.d("controller", "puck missed, dismounting");
-                        mountTimer.cancel(true);
-                        mountTimer = null;
-                        missedPuck = false; //todo is this the best place?
-                        state = State.DISMOUNTING;
-                        usageStats.onStateChange("Charging_" + state.name());
-                        qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                     }
                     break;
                 case CHARGING:
                     Log.d("controller", "charge pin: " + chargerCurrent);
                     Log.d("controller", "battery voltage: " + batteryVoltage);
-//                    if ((batteryVoltage > chargedVoltage)){
-//                        Log.d("controller", "finished charging, dismounting");
-//                        state = State.DISMOUNTING;
-//                        usageStats.onStateChange("Charging_" + state.name());
-//                        qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
-//                    }
                     if (chargerCurrent < chargingCurrent){
                         if (lowCurrentFrameCount > maxlowCurrentFrameCount){
                             state = State.DISMOUNTING;
+                            stuckDetector.startTimer(5000);
                             usageStats.onStateChange("Charging_" + state.name());
                             qrCodePublisher.setFace(Face.CHARGING_DISMOUNTING);
                             lowCurrentFrameCount = 0;
@@ -152,6 +141,10 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     break;
                 case DISMOUNTING:
                     dismount();
+                    state = State.SEARCHING;
+                    stuckDetector.startTimer(15000);
+                    usageStats.onStateChange("Charging_" + state.name());
+                    qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
                     break;
             }
         }
@@ -179,6 +172,40 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         }
         if (searchSameSpeedCnt >= maxSearchSameSpeedCnt){
             searchSameSpeedCnt = 0;
+        }
+    }
+
+    private void getFree(){
+        // Hard coded getFree sequence
+        try {
+            //1st aggressive motion
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            float outputLeft = (float) randomSign;
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            float outputRight = (float) randomSign;
+            setOutput(outputLeft, outputRight);
+            Thread.sleep(getFreeTime);
+            //2nd aggressive motion
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputLeft = (float) randomSign;
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputRight = (float) randomSign;
+            setOutput(outputLeft, outputRight);
+            Thread.sleep(getFreeTime);
+            //3rd aggressive motion
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputLeft = (float) randomSign;
+            randomSign = rand.nextBoolean() ? 1 : -1;
+            outputRight = (float) randomSign;
+            setOutput(outputLeft, outputRight);
+            Thread.sleep(getFreeTime);
+
+            state = State.SEARCHING;
+            stuckDetector.startTimer(15000);
+            usageStats.onStateChange("Mating_" + state.name());
+            qrCodePublisher.setFace(Face.MATE_SEARCHING);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -217,10 +244,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             setOutput(outputLeft, -outputLeft);
             Log.d("controller", "rand turn at speedL: " + outputLeft);
             Thread.sleep(randTurnTime);
-
-            state = State.SEARCHING;
-            usageStats.onStateChange("Charging_" + state.name());
-            qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

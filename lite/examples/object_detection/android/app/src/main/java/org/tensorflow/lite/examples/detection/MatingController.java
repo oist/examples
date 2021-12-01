@@ -192,7 +192,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             Thread.sleep(getFreeTime);
 
             state = State.SEARCHING;
-            stuckDetector.startTimer();
+            stuckDetector.startTimer(15000);
             usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
         } catch (InterruptedException e) {
