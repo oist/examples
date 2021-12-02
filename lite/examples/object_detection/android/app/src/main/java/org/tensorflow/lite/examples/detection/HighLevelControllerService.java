@@ -87,7 +87,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.01f);
     private float minMatingVoltage = 2.9f;
-    private float maxChargingVoltage = 3.1f;
+    private float maxChargingVoltage = 3.2f;
     private ImageData imageData;
     private PublisherManager publisherManager;
     private WheelData wheelData;
