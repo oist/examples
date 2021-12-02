@@ -27,8 +27,8 @@ import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, DefaultLifecycleObserver, Runnable{
     private String TAG = "UsageStats";
 
-    private int sampling_rate = 1; // once per 1 seconds data is sampled from streams
-    private int write_rate = 5; // once per 5 seconds samples are written to disk
+    private int sampling_rate = 10; // once per 1 seconds data is sampled from streams
+    private int write_rate = 1000; // once per 5 seconds samples are written to disk
 
     private File dir;
     private File file;
@@ -49,13 +49,18 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
     // Data of interest
     private double batteryLevel = 0;
     private ExponentialMovingAverage batteryLevelLP = new ExponentialMovingAverage(0.1f);
-    private int state;
-    private double wheelDistanceL;
-    private double wheelDistanceR;
-    private double wheelSpeedExpAvgL;
-    private double wheelSpeedExpAvgR;
+    private int state = 0;
+    private double wheelDistanceL = 0;
+    private double wheelDistanceR = 0;
+    private double wheelSpeedExpAvgL = 0;
+    private double wheelSpeedExpAvgR = 0;
+    private float wheelOutputL = 0;
+    private float wheelOutputR = 0;
 
-    private String header = "BatteryLevel,State,DistanceL,DistanceR,SpeedL,SpeedR" + System.getProperty("line.separator");
+    private String header = "BatteryLevel,State,DistanceL,DistanceR,SpeedLExp,SpeedRExp,SpeedLBuff,SpeedRBuff,OutputL,OutputR" + System.getProperty("line.separator");
+    private int stuck = 0;
+    private double wheelSpeedBufferedL = 0;
+    private double wheelSpeedBufferedR = 0;
 
     public UsageStats(Context context){
         dir = context.getFilesDir();
@@ -76,14 +81,14 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
     }
 
     public void start(){
-        executorSampling.scheduleAtFixedRate(this, 0, sampling_rate, TimeUnit.SECONDS);
+        executorSampling.scheduleAtFixedRate(this, 0, sampling_rate, TimeUnit.MILLISECONDS);
         executorWriter.scheduleAtFixedRate((Runnable) () -> {
             try {
                 fileWriter.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }, 5, 5, TimeUnit.SECONDS);
+        }, write_rate, write_rate, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -106,13 +111,29 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         string += format.format(wheelDistanceL) + ",";
         string += format.format(wheelDistanceR) + ",";
         string += format.format(wheelSpeedExpAvgL) + ",";
-        string += format.format(wheelSpeedExpAvgR) + System.lineSeparator();
+        string += format.format(wheelSpeedExpAvgR) + ",";
+        string += format.format(wheelSpeedBufferedL) + ",";
+        string += format.format(wheelSpeedBufferedR) + ",";
+        string += format.format(wheelOutputL) + ",";
+        string += format.format(wheelOutputR) + System.lineSeparator();
+
         Log.d(TAG, string);
         try {
             fileWriter.write(string);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public void onStuckEval(int stuck){
+        this.stuck = stuck;
+    }
+
+    public void onSetOutput(float l, float r){
+        // Make propotional to speed for easier comparison
+
+        this.wheelOutputL = l;
+        this.wheelOutputR = r;
     }
 
     public void onStateChange(String state){
@@ -170,5 +191,7 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         this.wheelDistanceR = wheelDistanceR;
         this.wheelSpeedExpAvgL = wheelSpeedExpAvgL;
         this.wheelSpeedExpAvgR = wheelSpeedExpAvgR;
+        this.wheelSpeedBufferedL = wheelSpeedBufferedL;
+        this.wheelSpeedBufferedR = wheelSpeedBufferedR;
     }
 }

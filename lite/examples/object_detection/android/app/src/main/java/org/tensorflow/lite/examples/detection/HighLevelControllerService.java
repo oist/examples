@@ -48,6 +48,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private CountDownLatch countDownLatch;
     private float leftWheelMultiplier = 1;
     private float rightWheelMultiplier = 1;
+    private long stallDelay = 200;
 
     @NonNull
     @Override
@@ -73,6 +74,8 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
             leftWheelMultiplier = 1;
             rightWheelMultiplier = 1;
         }
+//        stallDelay = Math.round(value);
+//        Log.d("StallWarning", "StallDelay: " + stallDelay);
     }
 
     private enum State {
@@ -216,6 +219,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }else{
                         chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
                     }
+                    chargeController.setStallDelay(stallDelay);
                 }else{
                     chargeController.startController();
                 }
@@ -237,26 +241,29 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
 
         usageStats = (UsageStats) new UsageStats(getApplicationContext());
+        StuckDetector stuckDetector = new StuckDetector();
 
         chargeController = (ChargeController) new ChargeController().setInitDelay(0)
                 .setName("chargeController").setThreadCount(1)
-                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
+                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(200)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
         chargeController.setQrCodePublisher(qrCodePublisher);
         chargeController.setUsageStats(usageStats);
+        chargeController.setStuckDetector(stuckDetector);
 
         matingController = (MatingController) new MatingController().setInitDelay(0)
                 .setName("matingController").setThreadCount(1)
-                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(100)
+                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(200)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
         matingController.setContext(this);
         matingController.setQrCodePublisher(qrCodePublisher);
         matingController.setUsageStats(usageStats);
+        matingController.setStuckDetector(stuckDetector);
 
         publisherManager = new PublisherManager();
         wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
-        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats);
+        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats).addSubscriber(stuckDetector);
         batteryData = new BatteryData.Builder(this, publisherManager, abcvlibLooper).build();
         batteryData.addSubscriber(chargeController).addSubscriber(this).addSubscriber(usageStats).addSubscriber(matingController);
 

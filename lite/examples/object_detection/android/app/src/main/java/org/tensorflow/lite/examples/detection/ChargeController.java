@@ -4,6 +4,7 @@ import android.util.Log;
 
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import jp.oist.abcvlib.core.inputs.microcontroller.BatteryDataSubscriber;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
@@ -18,6 +19,20 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private long getFreeTime = 500;
     private float leftWheelMultiplier = 1;
     private float rightWheelMultiplier = 1;
+    private long stallDelay; // ms to wait to evaluate if stuck. Should be less than control loop time.
+    private int leftStallCnt;
+    private int rightStallCnt;
+    private int maxStallCnt = 20;
+    private boolean stallCheck = true;
+    private StuckDetector stuckDetector;
+
+    public void setStuckDetector(StuckDetector stuckDetector) {
+        this.stuckDetector = stuckDetector;
+    }
+
+    public void setStallDelay(long stallDelay) {
+        this.stallDelay = stallDelay;
+    }
 
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
@@ -38,8 +53,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private int randomSign = rand.nextBoolean() ? 1 : -1;
     private ScheduledExecutorServiceWithException executor =
             new ScheduledExecutorServiceWithException(1,
-                    new ProcessPriorityThreadFactory(Thread.NORM_PRIORITY,
-                            "controllerTimer"));
+                    new ProcessPriorityThreadFactory(Thread.MAX_PRIORITY,
+                            "stallEvaluation"));
     private ScheduledFuture<?> mountTimer;
     private ScheduledFuture<?> dismountTimer;
     private ScheduledFuture<?> randTurnTimer;
@@ -62,8 +77,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage chargingVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
-
-    private StuckDetector stuckDetector = new StuckDetector();
 
 
     private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
@@ -299,6 +312,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         this.rightWheelMultiplier = rightWheelMultiplier;
     }
 
+
     @Override
     protected synchronized void setOutput(float left, float right) {
         // Scale output based on battery voltage so wheels to slow down too much. Normalized to full battery around 3.3.
@@ -307,7 +321,47 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         Log.d("Multiplier", "rightWheelMultiplier: " + rightWheelMultiplier);
         left = (left / (this.batteryVoltage / 3.2f)) * leftWheelMultiplier;
         right = (right / (this.batteryVoltage / 3.2f)) * rightWheelMultiplier;
+        float finalLeft = left;
+        float finalRight = right;
+        if (stallCheck){
+            executor.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    // Note if isStalled returns true, it will also set stuck=true, so next control loop will execture the stuck sequence.
+                    if (stuckDetector.isStalled(WheelSide.LEFT, (float) finalLeft)){
+                        Log.w("StallWarning", "Robot has stalled once on left wheel");
+                        stallCheck = false;
+                        setOutput(0, 0);
+
+                        // keep track of number of times stalled
+                        leftStallCnt++;
+                        if (leftStallCnt > maxStallCnt){
+                            stalledShutdown();
+                        }
+                    }
+                    if(stuckDetector.isStalled(WheelSide.RIGHT, (float) finalRight)){
+                        Log.w("StallWarning", "Robot has stalled once on right wheel");
+                        stallCheck = false;
+                        setOutput(0, 0);
+
+                        // keep track of number of times stalled
+                        rightStallCnt++;
+                        if (leftStallCnt > maxStallCnt){
+                            stalledShutdown();
+                        }
+                    }
+                }
+            }, stallDelay, TimeUnit.MILLISECONDS);
+            usageStats.onSetOutput(left, right);
+        }
+        // reenable stall check
+        stallCheck = true;
         super.setOutput(left, right);
+    }
+
+    protected void stalledShutdown(){
+        // Set wheels to zero and make popup that freezes all controller threads until user interaction
+        Log.w("StallWarning", "Robot has stalled above limit. Please fix asap");
     }
 
     @Override

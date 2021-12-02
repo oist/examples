@@ -23,6 +23,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
 
+    public void setStuckDetector(StuckDetector stuckDetector) {
+        this.stuckDetector = stuckDetector;
+    }
+
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
     }
@@ -53,7 +57,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private Genes genes = new Genes();
     private int speedL = 0;
     private int speedR = 0;
-    private StuckDetector stuckDetector = new StuckDetector();
+    private StuckDetector stuckDetector;
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
