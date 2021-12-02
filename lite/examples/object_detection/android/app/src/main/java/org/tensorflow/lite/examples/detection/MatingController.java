@@ -100,6 +100,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
         }
         if (targetAquired){
+            Log.d("MatingController", "Taget aquired");
             switch (state){
                 case SEARCHING:
                     // Turn off QR Code
@@ -130,21 +131,26 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     Log.d("MatingController", "prox: " + proximity);
                     if (proximity > minProximity){
                         state = State.WAITING;
-                        stuckDetector.startTimer(15000);
+                        stuckDetector.startTimer(20000);
                         usageStats.onStateChange("Mating_" + state.name());
                         qrCodePublisher.setFace(Face.MATE_WAITING);
                     }
                     break;
                 case WAITING:
+                    Log.d("MatingController", "Turning on QR Code");
                     qrCodePublisher.turnOnQRCode(genes.genesToString());
+                    Log.d("MatingController", "Target Aquired Waiting");
                     waiting();
                     switch (robotFacing){
                         case INVISIBLE:
+                            Log.d("MatingController", "Mate invisible");
                             break;
                         case BACK:
+                            Log.d("MatingController", "Mate back visible");
                             break;
                         case FRONT:
                             if (qrCodeVisible){
+                                Log.d("MatingController", "QRcode visible");
                                 genes.exchangeGenes(qrDataDecoded);
                                 state = State.FLEEING;
                                 stuckDetector.startTimer();
@@ -153,7 +159,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                             }
                             break;
                     }
+                    Log.d("MatingController", "End of Waiting logic");
+                    break;
                 case FLEEING:
+                    Log.d("MatingController", "Fleeing");
                     // Turn off QR Code
                     qrCodeVisible = false;
                     qrCodePublisher.turnOffQRCode();
@@ -166,6 +175,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     break;
             }
         }else{
+            Log.d("MatingController", "Taget not aquired");
             switch (state){
                 case SEARCHING:
                     search();

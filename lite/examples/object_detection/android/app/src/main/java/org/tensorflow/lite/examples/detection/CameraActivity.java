@@ -243,7 +243,7 @@ public abstract class CameraActivity extends AppCompatActivity
     Log.e("race", "7");
   }
 
-  public void turnOnQRCode(String geneStr){
+  public synchronized void turnOnQRCode(String geneStr){
     if (qrCode == null){
       Log.d("genQR", "qrCode is null");
     }
