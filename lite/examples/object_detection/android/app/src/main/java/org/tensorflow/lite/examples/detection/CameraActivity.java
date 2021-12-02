@@ -56,6 +56,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.slider.Slider;
+
 import java.nio.ByteBuffer;
 
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
@@ -100,6 +102,7 @@ public abstract class CameraActivity extends AppCompatActivity
   private TextView threadsTextView;
   protected HighLevelControllerService highLevelControllerService;
   private boolean mBound = false;
+  private Slider slider;
 
   private QRCode qrCode;
 
@@ -114,6 +117,8 @@ public abstract class CameraActivity extends AppCompatActivity
       highLevelControllerService = binder.getService();
       mBound = true;
       highLevelControllerService.setQRCodePublisher(CameraActivity.this);
+      slider = findViewById(R.id.slider);
+      slider.addOnChangeListener(highLevelControllerService);
     }
 
     @Override

@@ -1,26 +1,16 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.content.Context;
-import android.os.CountDownTimer;
 import android.util.Log;
 
-import com.karlotoy.perfectune.instance.PerfectTune;
-
-import java.util.Arrays;
 import java.util.Random;
-import java.util.Timer;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
+import jp.oist.abcvlib.core.inputs.microcontroller.BatteryDataSubscriber;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeDataSubscriber;
 import jp.oist.abcvlib.core.outputs.AbcvlibController;
-import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
-import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
-public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber {
+public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber, BatteryDataSubscriber {
 
     private QRCodePublisher qrCodePublisher;
     private float proximity = 0;
@@ -28,6 +18,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private String qrDataDecoded;
     private UsageStats usageStats;
     private long getFreeTime = 500;
+    private float leftWheelMultiplier = 1;
+    private float rightWheelMultiplier = 1;
+    private float batteryVoltage = 0;
+    private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
 
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
@@ -173,7 +167,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             }
         }else{
             state = State.SEARCHING;
-            flipToArms();
             stuckDetector.startTimer();
             usageStats.onStateChange("Mating_" + state.name());
             qrCodePublisher.setFace(Face.MATE_SEARCHING);
@@ -290,11 +283,34 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         this.context = context;
     }
 
-    protected void setTarget(boolean targetAquired, float phi, float proximity, String robot_face){
+    protected void setTarget(boolean targetAquired, float phi, float proximity, String robot_face, float leftWheelMultiplier, float rightWheelMultiplier){
         this.targetAquired = targetAquired;
         this.phi = phi;
         this.proximity = proximity;
         this.robotFacing = interpretFace(robot_face);
+        this.leftWheelMultiplier = leftWheelMultiplier;
+        this.rightWheelMultiplier = rightWheelMultiplier;
+    }
+
+    @Override
+    protected synchronized void setOutput(float left, float right) {
+        // Scale output based on battery voltage so wheels to slow down too much. Normalized to full battery around 3.3.
+        // wheelMultipliers are an attempt to compensate for motor wear
+        Log.d("Multiplier", "leftWheelMultiplier: " + leftWheelMultiplier);
+        Log.d("Multiplier", "rightWheelMultiplier: " + rightWheelMultiplier);
+        left = (left / (this.batteryVoltage / 3.2f)) * leftWheelMultiplier;
+        right = (right / (this.batteryVoltage / 3.2f)) * rightWheelMultiplier;
+        super.setOutput(left, right);
+    }
+
+    @Override
+    public void onBatteryVoltageUpdate(double voltage, long timestamp) {
+        this.batteryVoltage = batteryVoltageLP.average((float) voltage);
+    }
+
+    @Override
+    public void onChargerVoltageUpdate(double chargerVoltage, double coilVoltage, long timestamp) {
+
     }
 
     private RobotFacing interpretFace(String title){

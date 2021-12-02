@@ -79,6 +79,17 @@
             app:layout_constraintTop_toTopOf="parent"
             app:srcCompat="@drawable/normal" />
 
+        <com.google.android.material.slider.Slider
+            android:id="@+id/slider"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:value="0"
+            android:valueFrom="-0.5"
+            android:valueTo="0.5"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="@+id/face"
+            app:layout_constraintStart_toStartOf="parent" />
+
         <FrameLayout
             android:id="@+id/qrCodeContainer"
             android:layout_width="0dp"

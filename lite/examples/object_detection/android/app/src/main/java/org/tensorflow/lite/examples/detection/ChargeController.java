@@ -4,7 +4,6 @@ import android.util.Log;
 
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import jp.oist.abcvlib.core.inputs.microcontroller.BatteryDataSubscriber;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
@@ -17,16 +16,18 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private QRCodePublisher qrCodePublisher;
     private UsageStats usageStats;
     private long getFreeTime = 500;
+    private float leftWheelMultiplier = 1;
+    private float rightWheelMultiplier = 1;
 
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
     }
     private State state;
     private float phi = 0;
-    private float p_phi = 0.25f;
+    private float p_phi = 0.45f;
     private boolean targetAquired = false;
     private float proximity = 0; // from 0 to 1 where 1 is directly in front of the camera and zero being invisible.
-    private float staticApproachSpeed = 0.7f;
+    private float staticApproachSpeed = 0.6f;
     private float randTurnSpeed = 0.5f;
     private float dismountSpeed = -0.8f;
     private float variableApproachSpeed = 0;
@@ -260,6 +261,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private void mount(){
         float outputLeft = -(phi * p_phi) + (staticApproachSpeed);
         float outputRight = (phi * p_phi) + (staticApproachSpeed);
+        Log.d("ChargeController", "phi: " + phi);
+        Log.d("ChargeController", "output: " + outputLeft);
         setOutput(outputLeft, outputRight);
     }
 
@@ -288,22 +291,31 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
      * of the camera, this is just a first attempt, but OpenCV may have more robust/accuarte 3D motionSensors
      * metrics.
      */
-    protected void setTarget(boolean targetAquired, float phi, float proximity){
+    protected void setTarget(boolean targetAquired, float phi, float proximity, float leftWheelMultiplier, float rightWheelMultiplier){
         this.targetAquired = targetAquired;
         this.phi = phi;
         this.proximity = proximity;
+        this.leftWheelMultiplier = leftWheelMultiplier;
+        this.rightWheelMultiplier = rightWheelMultiplier;
     }
 
     @Override
     protected synchronized void setOutput(float left, float right) {
         // Scale output based on battery voltage so wheels to slow down too much. Normalized to full battery around 3.3.
-        left = left / (this.batteryVoltage / 3.3f);
-        right = right / (this.batteryVoltage / 3.3f);
+        // wheelMultipliers are an attempt to compensate for motor wear
+        Log.d("Multiplier", "leftWheelMultiplier: " + leftWheelMultiplier);
+        Log.d("Multiplier", "rightWheelMultiplier: " + rightWheelMultiplier);
+        left = (left / (this.batteryVoltage / 3.2f)) * leftWheelMultiplier;
+        right = (right / (this.batteryVoltage / 3.2f)) * rightWheelMultiplier;
         super.setOutput(left, right);
     }
 
     @Override
-    public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
+    public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR,
+                                  double wheelDistanceL, double wheelDistanceR,
+                                  double wheelSpeedInstantL, double wheelSpeedInstantR,
+                                  double wheelSpeedBufferedL, double wheelSpeedBufferedR,
+                                  double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
 
     }
 
