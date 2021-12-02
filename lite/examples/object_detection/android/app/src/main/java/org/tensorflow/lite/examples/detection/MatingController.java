@@ -82,7 +82,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         flipToArms();
         stuckDetector.startTimer(15000);
         usageStats.onStateChange("Mating_" + state.name());
-        qrCodePublisher.setFace(Face.MATE_DECIDING);
+        qrCodePublisher.setFace(Face.MATE_SEARCHING);
         super.startController();
     }
 
@@ -166,13 +166,22 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
                     break;
             }
         }else{
-            state = State.SEARCHING;
-            stuckDetector.startTimer();
-            usageStats.onStateChange("Mating_" + state.name());
-            qrCodePublisher.setFace(Face.MATE_SEARCHING);
-            // Turn off QR Code
-            qrCodePublisher.turnOffQRCode();
-            search();
+            switch (state){
+                case SEARCHING:
+                    search();
+                    break;
+                case APPROACHING:
+                case WAITING:
+                case FLEEING:
+                case DECIDING:
+                    state = State.SEARCHING;
+                    stuckDetector.startTimer(); //todo this restarts the timer every loop rendering it meaningless.
+                    usageStats.onStateChange("Mating_" + state.name());
+                    qrCodePublisher.setFace(Face.MATE_SEARCHING);
+                    // Turn off QR Code
+                    qrCodePublisher.turnOffQRCode();
+                    break;
+            }
         }
     }
 
