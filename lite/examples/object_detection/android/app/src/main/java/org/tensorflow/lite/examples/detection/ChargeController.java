@@ -126,7 +126,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     Log.d("controller", "visibleFrameCount: "+ visibleFrameCount);
                     if (visibleFrameCount > minVisibleFrameCount){
                         state = State.MOUNTING;
-                        stuckDetector.startTimer(8000);
+                        stuckDetector.startTimer(15000);
                         usageStats.onStateChange("Charging_" + state.name());
                         qrCodePublisher.setFace(Face.CHARGING_MOUNTING);
                         visibleFrameCount = 0;
