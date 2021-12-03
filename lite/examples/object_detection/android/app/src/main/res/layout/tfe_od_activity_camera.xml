@@ -83,9 +83,9 @@
             android:id="@+id/slider"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:value="150"
-            android:valueFrom="10"
-            android:valueTo="500"
+            android:value="0"
+            android:valueFrom="-0.5"
+            android:valueTo="0.5"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="@+id/face"
             app:layout_constraintStart_toStartOf="parent" />
