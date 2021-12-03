@@ -105,7 +105,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
 
     public void run(){
         if (stuckDetector.isStuck()){
-            Log.d("ChargeController", "I'm Stuck!");
+            Log.d("ChargeController", "I'm Stuck! ChargeController Logic");
             getFree();
             state = State.SEARCHING;
             flipToArms();

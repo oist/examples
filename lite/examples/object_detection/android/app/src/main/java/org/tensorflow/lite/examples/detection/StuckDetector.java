@@ -22,7 +22,7 @@ public class StuckDetector {
     public StuckDetector(){
         Log.d("StuckDetector", "stuck Timer started");
         whenStuck = stuckTimer.schedule(() -> {
-            Log.d("StuckDetector", "Stuck!");
+            Log.d("StuckDetector", "Stuck! Initialization of StuckDetector");
             stuck = true;
         }, stuckTime, TimeUnit.MILLISECONDS);
     }
@@ -31,23 +31,7 @@ public class StuckDetector {
      * Default is 15seconds to assume stuck
      */
     public synchronized void startTimer(){
-        stuck = false;
-        Log.d("StuckDetector", "stuck Timer started");
-        // If the scheduled future is finished (determined to be stuck)
-        if (whenStuck.isDone()){
-            whenStuck = stuckTimer.schedule(() -> {
-                Log.d("StuckDetector", "Stuck!");
-                stuck = true;
-            }, stuckTime, TimeUnit.MILLISECONDS);
-        }
-        // else cancel the timer and restart it.
-        else {
-            whenStuck.cancel(true);
-            whenStuck = stuckTimer.schedule(() -> {
-                Log.d("StuckDetector", "Stuck!");
-                stuck = true;
-            }, stuckTime, TimeUnit.MILLISECONDS);
-        }
+        startTimer(15000);
     }
 
     /**
@@ -59,7 +43,7 @@ public class StuckDetector {
         // If the scheduled future is finished (determined to be stuck)
         if (whenStuck.isDone()){
             whenStuck = stuckTimer.schedule(() -> {
-                Log.d("StuckDetector", "Stuck!");
+                Log.d("StuckDetector", "Stuck! StuckDetector timer depleted");
                 stuck = true;
             }, stuckTime, TimeUnit.MILLISECONDS);
         }
@@ -67,7 +51,7 @@ public class StuckDetector {
         else {
             whenStuck.cancel(true);
             whenStuck = stuckTimer.schedule(() -> {
-                Log.d("StuckDetector", "Stuck!");
+                Log.d("StuckDetector", "Stuck! StuckDetector timer depleted2");
                 stuck = true;
             }, stuckTime, TimeUnit.MILLISECONDS);
         }
@@ -107,6 +91,7 @@ public class StuckDetector {
             if (stallCnt > stuckCount){
                 // Setting stuck to true will use controllers getFree method on next action selection.
                 Log.d("StallWarning", "You stalled more than stuckCount");
+                Log.d("StuckDetector", "You stalled more than stuckCount");
                 stuck = true;
             }
             if (stallCnt > maxStallCnt){
