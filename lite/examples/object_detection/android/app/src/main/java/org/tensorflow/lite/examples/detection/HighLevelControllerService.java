@@ -263,7 +263,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
         publisherManager = new PublisherManager();
         wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
-        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats).addSubscriber(stuckDetector);
+        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats);
         batteryData = new BatteryData.Builder(this, publisherManager, abcvlibLooper).build();
         batteryData.addSubscriber(chargeController).addSubscriber(this).addSubscriber(usageStats).addSubscriber(matingController);
 

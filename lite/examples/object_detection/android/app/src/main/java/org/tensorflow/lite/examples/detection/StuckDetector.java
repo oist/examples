@@ -10,21 +10,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
-
-public class StuckDetector implements WheelDataSubscriber {
-    private long stuckTime = 15000; // in ms
+public class StuckDetector {
+    private final long stuckTime = 15000; // in ms
     private ScheduledFuture<?> whenStuck;
     private boolean stuck = false;
-    private ScheduledExecutorService stuckTimer = Executors.newSingleThreadScheduledExecutor();
-    int bufferLen = 100;
-    private double[] speedBufferL = new double[bufferLen];
-    private double[] speedBufferR = new double[bufferLen];
-    private int bufferIdx = 0;
-    private long wheelDataLastUpdateTimestamp = System.nanoTime();
+    private final ScheduledExecutorService stuckTimer = Executors.newSingleThreadScheduledExecutor();
     private int stallCnt = 0;
-    private int maxStallCnt = 20;
-    private int stuckCount = 5;
+    private final int maxStallCnt = 20;
+    private final int stuckCount = 5;
 
     public StuckDetector(){
         Log.d("StuckDetector", "stuck Timer started");
@@ -84,27 +77,9 @@ public class StuckDetector implements WheelDataSubscriber {
         return stuck;
     }
 
-    @Override
-    public void onWheelDataUpdate(long timestamp, int wheelCountL,
-                                  int wheelCountR, double wheelDistanceL,
-                                  double wheelDistanceR, double wheelSpeedInstantL,
-                                  double wheelSpeedInstantR, double wheelSpeedBufferedL,
-                                  double wheelSpeedBufferedR, double wheelSpeedExpAvgL,
-                                  double wheelSpeedExpAvgR) {
-        double updateTime = (System.nanoTime() - wheelDataLastUpdateTimestamp) * 1e-3;
-        Log.v("WheelUpdate", String.format("Update Time: %.2f microseconds", updateTime));
-        wheelDataLastUpdateTimestamp = System.nanoTime();
-
-        speedBufferL[bufferIdx] = wheelSpeedBufferedL;
-        speedBufferR[bufferIdx] = wheelSpeedBufferedR;
-        bufferIdx++;
-        bufferIdx = bufferIdx % bufferLen;
-    }
-
     /**
      * Call this with a controller on a delayed executor. If returns true, shut down that wheel.
      * This class counts the number of times checkStall and if it exceeds 20 times. Turns off robot.
-     * @return
      */
     public boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller){
         OptionalDouble avgSpeed = OptionalDouble.of(0);
@@ -116,31 +91,13 @@ public class StuckDetector implements WheelDataSubscriber {
             case LEFT:
                 currentSpeed = controller.getCurrentWheelSpeed(WheelSide.LEFT);
                 Log.d("StallWarning", "CurrentSpeed LEFT wheel : " + currentSpeed);
-//                avgSpeed = Arrays.stream(speedBufferL).average();
-//                Log.d("StallWarning", "SpeedAvg LEFT wheel : " + avgSpeed);
                 break;
             case RIGHT:
                 currentSpeed = controller.getCurrentWheelSpeed(WheelSide.LEFT);
                 Log.d("StallWarning", "CurrentSpeed RIGHT wheel : " + currentSpeed);
-//                avgSpeed = Arrays.stream(speedBufferR).average();
-//                Log.d("StallWarning", "SpeedAvg RIGHT wheel : " + avgSpeed);
                 break;
         }
-
-//        Log.d("StallWarning", "SpeedL:" + Arrays.toString(speedBufferL));
-//        Log.d("StallWarning", "SpeedR:" + Arrays.toString(speedBufferR));
         Log.d("StallWarning", "ExpectedOutput*LLimit: " + Math.abs(expectedOutput * lowerLimit));
-
-
-//        if (avgSpeed.isPresent()){
-//            Log.d("StallWarning", "Error: " + Math.abs(expectedOutput - avgSpeed.getAsDouble()));
-//            // You've stalled
-//            if ((Math.abs(avgSpeed.getAsDouble()) < Math.abs(expectedOutput * lowerLimit))){
-//                // set stuck to true so controller will try getFree next loop.
-//                stuck = true;
-//                return true;
-//            }
-//        }
         Log.d("StallWarning", "Error: " + Math.abs(expectedOutput - currentSpeed));
         // You've stalled
         if ((Math.abs(currentSpeed) < Math.abs(expectedOutput * lowerLimit))){

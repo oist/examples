@@ -343,6 +343,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     public void stalledShutdown(){
         // Set wheels to zero and make popup that freezes all controller threads until user interaction
         Log.w("StallWarning", "Robot has stalled above limit. Please fix asap");
+        
     }
 
     @Override
