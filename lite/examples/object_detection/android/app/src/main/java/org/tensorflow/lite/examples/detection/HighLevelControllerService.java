@@ -48,7 +48,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private CountDownLatch countDownLatch;
     private float leftWheelMultiplier = 1;
     private float rightWheelMultiplier = 1;
-    private long stallDelay = 200;
+    private final int controlLoopTime = 200;
 
     @NonNull
     @Override
@@ -217,7 +217,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }else{
                         chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
                     }
-                    chargeController.setStallDelay(stallDelay);
+                    chargeController.setStallDelay(controlLoopTime / 2);
                 }else{
                     chargeController.startController();
                 }
@@ -243,7 +243,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
         chargeController = (ChargeController) new ChargeController().setInitDelay(0)
                 .setName("chargeController").setThreadCount(1)
-                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(200)
+                .setThreadPriority(Thread.MAX_PRIORITY).setTimestep(controlLoopTime)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
         chargeController.setQrCodePublisher(qrCodePublisher);
         chargeController.setUsageStats(usageStats);
@@ -251,7 +251,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
         matingController = (MatingController) new MatingController().setInitDelay(0)
                 .setName("matingController").setThreadCount(1)
-                .setThreadPriority(Thread.NORM_PRIORITY).setTimestep(200)
+                .setThreadPriority(Thread.MAX_PRIORITY).setTimestep(controlLoopTime)
                 .setTimeUnit(TimeUnit.MILLISECONDS);
 
         matingController.setContext(this);
