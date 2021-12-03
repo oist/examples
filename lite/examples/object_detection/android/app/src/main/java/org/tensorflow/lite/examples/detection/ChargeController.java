@@ -77,7 +77,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private int minVisibleFrameCount = 10; // A means to avoid random misclassified distractors
 
     private int lowCurrentFrameCount = 0;
-    private int maxlowCurrentFrameCount = 50; // A means to dismounting when puck current goes low momentarily
+    private int maxlowCurrentFrameCount = 15; // A means to dismounting when puck current goes low momentarily
 
     private float chargerCurrent = 0;
     private float coilCurrent = 0;
