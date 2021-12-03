@@ -87,7 +87,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float center = 320f * 0.5f; // As camera is offcenter, this is not exactly half of frame
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.01f);
-    private float minMatingVoltage = 2.9f;
+    private float minMatingVoltage = 3.0f;
     private float maxChargingVoltage = 3.2f;
     private ImageData imageData;
     private PublisherManager publisherManager;
