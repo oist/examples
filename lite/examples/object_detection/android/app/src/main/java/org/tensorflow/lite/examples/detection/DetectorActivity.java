@@ -170,7 +170,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
       return;
     }
     computingDetection = true;
-    LOGGER.i("Preparing image " + currTimestamp + " for detection in bg thread.");
+    LOGGER.v("Preparing image " + currTimestamp + " for detection in bg thread.");
 
     rgbBytes = getRgbBytes();
     rgbFrameBitmap.setPixels(rgbBytes, 0, previewWidth, 0, 0, previewWidth, previewHeight);
@@ -191,7 +191,7 @@ public class DetectorActivity extends CameraActivity implements OnImageAvailable
         new Runnable() {
           @Override
           public void run() {
-            LOGGER.i("Running detection on image " + currTimestamp);
+            LOGGER.v("Running detection on image " + currTimestamp);
             final long startTime = SystemClock.uptimeMillis();
             final List<Detector.Recognition> results = detector.recognizeImage(croppedBitmap);
             // Pass image to QRCode Detector:

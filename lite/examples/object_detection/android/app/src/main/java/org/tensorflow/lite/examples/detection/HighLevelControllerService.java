@@ -64,18 +64,18 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
      */
     @Override
     public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
-        if (value > 0){
-            rightWheelMultiplier = 1;
-            leftWheelMultiplier = 1 + Math.abs(value);
-        }else if (value < 0){
-            leftWheelMultiplier = 1;
-            rightWheelMultiplier = 1 + Math.abs(value);
-        }else{
-            leftWheelMultiplier = 1;
-            rightWheelMultiplier = 1;
-        }
-//        stallDelay = Math.round(value);
-//        Log.d("StallWarning", "StallDelay: " + stallDelay);
+//        if (value > 0){
+//            rightWheelMultiplier = 1;
+//            leftWheelMultiplier = 1 + Math.abs(value);
+//        }else if (value < 0){
+//            leftWheelMultiplier = 1;
+//            rightWheelMultiplier = 1 + Math.abs(value);
+//        }else{
+//            leftWheelMultiplier = 1;
+//            rightWheelMultiplier = 1;
+//        }
+        stallDelay = Math.round(value);
+        Log.d("StallWarning", "StallDelay: " + stallDelay);
     }
 
     private enum State {

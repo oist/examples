@@ -117,7 +117,7 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         string += format.format(wheelOutputL) + ",";
         string += format.format(wheelOutputR) + System.lineSeparator();
 
-        Log.d(TAG, string);
+        Log.v(TAG, string);
         try {
             fileWriter.write(string);
         } catch (IOException e) {

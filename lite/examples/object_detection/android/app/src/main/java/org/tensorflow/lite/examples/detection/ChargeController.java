@@ -12,7 +12,7 @@ import jp.oist.abcvlib.core.outputs.AbcvlibController;
 import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
 import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
-public class ChargeController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber {
+public class ChargeController extends AbcvlibController implements WheelDataSubscriber, BatteryDataSubscriber, StallAwareController {
 
     private QRCodePublisher qrCodePublisher;
     private UsageStats usageStats;
@@ -20,11 +20,10 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private float leftWheelMultiplier = 1;
     private float rightWheelMultiplier = 1;
     private long stallDelay; // ms to wait to evaluate if stuck. Should be less than control loop time.
-    private int leftStallCnt;
-    private int rightStallCnt;
-    private int maxStallCnt = 20;
     private boolean stallCheck = true;
     private StuckDetector stuckDetector;
+    private double wheelSpeedL = 0;
+    private double wheelSpeedR = 0;
 
     public void setStuckDetector(StuckDetector stuckDetector) {
         this.stuckDetector = stuckDetector;
@@ -32,6 +31,18 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
 
     public void setStallDelay(long stallDelay) {
         this.stallDelay = stallDelay;
+    }
+
+    @Override
+    public double getCurrentWheelSpeed(WheelSide wheelSide) {
+        switch (wheelSide){
+            case LEFT:
+                return this.wheelSpeedL;
+            case RIGHT:
+                return this.wheelSpeedR;
+            default:
+                return 401;
+        }
     }
 
     private enum State {
@@ -46,8 +57,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private float randTurnSpeed = 0.5f;
     private float dismountSpeed = -0.8f;
     private float variableApproachSpeed = 0;
-    private float minSpeed = 0.3f;
-    private float maxSpeed = 0.5f;
+    private float minSpeed = 0.4f;
+    private float maxSpeed = 0.6f;
     private Random rand = new Random();
     // Random choice between -1 and 1.
     private int randomSign = rand.nextBoolean() ? 1 : -1;
@@ -323,43 +334,13 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         right = (right / (this.batteryVoltage / 3.2f)) * rightWheelMultiplier;
         float finalLeft = left;
         float finalRight = right;
-        if (stallCheck){
-            executor.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    // Note if isStalled returns true, it will also set stuck=true, so next control loop will execture the stuck sequence.
-                    if (stuckDetector.isStalled(WheelSide.LEFT, (float) finalLeft)){
-                        Log.w("StallWarning", "Robot has stalled once on left wheel");
-                        stallCheck = false;
-                        setOutput(0, 0);
-
-                        // keep track of number of times stalled
-                        leftStallCnt++;
-                        if (leftStallCnt > maxStallCnt){
-                            stalledShutdown();
-                        }
-                    }
-                    if(stuckDetector.isStalled(WheelSide.RIGHT, (float) finalRight)){
-                        Log.w("StallWarning", "Robot has stalled once on right wheel");
-                        stallCheck = false;
-                        setOutput(0, 0);
-
-                        // keep track of number of times stalled
-                        rightStallCnt++;
-                        if (leftStallCnt > maxStallCnt){
-                            stalledShutdown();
-                        }
-                    }
-                }
-            }, stallDelay, TimeUnit.MILLISECONDS);
-            usageStats.onSetOutput(left, right);
-        }
-        // reenable stall check
-        stallCheck = true;
+        executor.schedule(new StallChecker(stuckDetector, left, right, this),
+                stallDelay, TimeUnit.MILLISECONDS);
+        usageStats.onSetOutput(left, right);
         super.setOutput(left, right);
     }
 
-    protected void stalledShutdown(){
+    public void stalledShutdown(){
         // Set wheels to zero and make popup that freezes all controller threads until user interaction
         Log.w("StallWarning", "Robot has stalled above limit. Please fix asap");
     }
@@ -370,7 +351,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                                   double wheelSpeedInstantL, double wheelSpeedInstantR,
                                   double wheelSpeedBufferedL, double wheelSpeedBufferedR,
                                   double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
-
+        this.wheelSpeedL = wheelSpeedBufferedL;
+        this.wheelSpeedR = wheelSpeedBufferedR;
     }
 
     @Override
