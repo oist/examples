@@ -17,9 +17,12 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.app.Fragment;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
@@ -72,7 +75,7 @@ public abstract class CameraActivity extends AppCompatActivity
         Camera.PreviewCallback,
         CompoundButton.OnCheckedChangeListener,
         View.OnClickListener,
-        QRCodePublisher{
+        QRCodePublisher, StallShutdownDialogFragment.StallDialogListener {
   private static final Logger LOGGER = new Logger();
 
   private static final int PERMISSIONS_REQUEST = 1;
@@ -117,6 +120,7 @@ public abstract class CameraActivity extends AppCompatActivity
       highLevelControllerService = binder.getService();
       mBound = true;
       highLevelControllerService.setQRCodePublisher(CameraActivity.this);
+      highLevelControllerService.setCameraActivity(CameraActivity.this);
       slider = findViewById(R.id.slider);
       slider.addOnChangeListener(highLevelControllerService);
     }
@@ -240,7 +244,17 @@ public abstract class CameraActivity extends AppCompatActivity
 
     plusImageView.setOnClickListener(this);
     minusImageView.setOnClickListener(this);
+
     Log.e("race", "7");
+  }
+
+  public void shutdownDialog(){
+    StallShutdownDialogFragment stallFragment = new StallShutdownDialogFragment();
+    stallFragment.show(getSupportFragmentManager(), "Stalled");
+  }
+
+  public void onConfirmedMoved(){
+    highLevelControllerService.restore();
   }
 
   public synchronized void turnOnQRCode(String geneStr){

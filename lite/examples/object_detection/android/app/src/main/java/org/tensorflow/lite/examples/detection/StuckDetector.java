@@ -4,7 +4,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import java.util.OptionalDouble;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -18,8 +17,10 @@ public class StuckDetector {
     private int stallCnt = 0;
     private final int maxStallCnt = 20;
     private final int stuckCount = 5;
+    private HighLevelControllerService highLevelControllerService;
 
-    public StuckDetector(){
+    public StuckDetector(HighLevelControllerService highLevelControllerService){
+        this.highLevelControllerService = highLevelControllerService;
         Log.d("StuckDetector", "stuck Timer started");
         whenStuck = stuckTimer.schedule(() -> {
             Log.d("StuckDetector", "Stuck! Initialization of StuckDetector");
@@ -68,7 +69,7 @@ public class StuckDetector {
     public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller){
         expectedOutput = expectedOutput * 220; // appx scaling from [-1,1] to [full speed rev, full speed forward]
         double currentSpeed = 0;
-        double lowerLimit = 0.01; // Wheel may not have reached full speed yet, but it should at least have increased towards the expected direction.
+        double lowerLimit = 0.1; // Wheel may not have reached full speed yet, but it should at least have increased towards the expected direction.
 
         switch (wheelSide){
             case LEFT:
@@ -96,12 +97,12 @@ public class StuckDetector {
             if (stallCnt > maxStallCnt){
                 // If you've tried to get unstuck, but remain stuck, shut down to prevent further wear to motors
                 Log.e("StallWarning", "You stalled more than maxStallCnt Shutting Down");
-                controller.stalledShutdown();
+                highLevelControllerService.stalledShutdownRequest();
             }
             return true;
         }else {
             // Clear stall counts as you're no longer stalling
-            Log.e("StallWarning", "You Appear to be free. Resetting stuck and stall counts");
+            Log.d("StallWarning", "You Appear to be free. Resetting stuck and stall counts");
             stallCnt = 0;
             stuck = false;
         }

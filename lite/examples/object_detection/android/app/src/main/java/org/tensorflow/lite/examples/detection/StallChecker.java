@@ -23,7 +23,6 @@ public class StallChecker implements Runnable{
         }
         if(stuckDetector.checkStall(WheelSide.RIGHT, (float) expectedR, controller)){
             Log.w("StallWarning", "Robot has stalled once on right wheel");
-
         }
     }
 }

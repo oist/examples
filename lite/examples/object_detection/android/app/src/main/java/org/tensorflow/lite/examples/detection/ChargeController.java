@@ -1,6 +1,7 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
@@ -88,6 +89,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage chargingVoltageLP = new ExponentialMovingAverage(0.1f);
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
+
+    private boolean stalledShutdown = false;
 
 
     private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
@@ -340,10 +343,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         super.setOutput(left, right);
     }
 
-    public void stalledShutdown(){
-        // Set wheels to zero and make popup that freezes all controller threads until user interaction
-        Log.w("StallWarning", "Robot has stalled above limit. Please fix asap");
-
+    public void stalledShutdownRequest(){
     }
 
     @Override

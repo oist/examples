@@ -41,7 +41,8 @@ import com.google.zxing.Result;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
-public class HighLevelControllerService extends AbcvlibService implements IOReadyListener, BatteryDataSubscriber, LifecycleOwner, Slider.OnChangeListener {
+public class HighLevelControllerService extends AbcvlibService implements IOReadyListener,
+        BatteryDataSubscriber, LifecycleOwner, Slider.OnChangeListener, StallAwareController {
 
     private LifecycleRegistry lifecycleRegistry;
     private QRCodePublisher qrCodePublisher;
@@ -49,6 +50,25 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float leftWheelMultiplier = 1;
     private float rightWheelMultiplier = 1;
     private final int controlLoopTime = 200;
+    private boolean shutdownRequest = false;
+    private CameraActivity cameraActivity;
+    private HighLevelControllerService.State state = State.CHARGING;
+
+    private float minimumConfidence = 0.8f;
+    private ChargeController chargeController;
+    private MatingController matingController;
+    private float center = 320f * 0.5f; // As camera is offcenter, this is not exactly half of frame
+    private float batteryVoltage = 0;
+    private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.01f);
+    private float minMatingVoltage = 3.0f;
+    private float maxChargingVoltage = 3.2f;
+    private ImageData imageData;
+    private PublisherManager publisherManager;
+    private WheelData wheelData;
+    private BatteryData batteryData;
+    private QRCodeData qrCodeData;
+    private UsageStats usageStats;
+    private boolean shutdown = false;
 
     @NonNull
     @Override
@@ -76,25 +96,52 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
     }
 
+    @Override
+    public double getCurrentWheelSpeed(WheelSide wheelSide) {
+        return 401;
+    }
+
+    @Override
+    public void stalledShutdownRequest() {
+        Log.e("StalledShutdown", "1. Shutdown Request");
+
+        if (!shutdownRequest){
+            shutdownRequest = true;
+            cameraActivity.shutdownDialog();
+        }
+    }
+
+    private void shutdown(){
+        //todo this should be moved to another method and this only sets a bool. The main control thread should call the rest of this at the end of the loop to ensure controllers aren't restarted in a race condition
+        Log.e("StalledShutdown", "3. ShuttingDown");
+        if (chargeController != null){
+            if (chargeController.isRunning()){
+                Log.e("StalledShutdown", "4. Stopping ChargeController");
+                chargeController.stopController();
+                getOutputs().getMasterController().removeController(chargeController);
+
+            }
+        }
+        if (matingController != null){
+            if (matingController.isRunning()){
+                Log.e("StalledShutdown", "Stopping MatingController");
+                matingController.stopController();
+                getOutputs().getMasterController().removeController(matingController);
+            }
+        }
+        shutdown = true;
+    }
+
+    public void restore() {
+        this.shutdownRequest = false;
+        this.shutdown = false;
+        getOutputs().getMasterController().addController(chargeController);
+        getOutputs().getMasterController().addController(matingController);
+    }
+
     private enum State {
         CHARGING, MATING
     }
-    private HighLevelControllerService.State state = State.CHARGING;
-
-    private float minimumConfidence = 0.8f;
-    private ChargeController chargeController;
-    private MatingController matingController;
-    private float center = 320f * 0.5f; // As camera is offcenter, this is not exactly half of frame
-    private float batteryVoltage = 0;
-    private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.01f);
-    private float minMatingVoltage = 3.0f;
-    private float maxChargingVoltage = 3.2f;
-    private ImageData imageData;
-    private PublisherManager publisherManager;
-    private WheelData wheelData;
-    private BatteryData batteryData;
-    private QRCodeData qrCodeData;
-    private UsageStats usageStats;
 
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
@@ -124,6 +171,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     public void onCreate() {
+
         super.onCreate();
         countDownLatch = new CountDownLatch(1);
         lifecycleRegistry = new LifecycleRegistry(this);
@@ -182,7 +230,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         countDownLatch.countDown();
     }
 
-    public void sendControl(Detector.Recognition target_robot, Detector.Recognition target_puck){
+    public void setCameraActivity(CameraActivity cameraActivity){
+        this.cameraActivity = cameraActivity;
+    }
+
+    public synchronized void sendControl(Detector.Recognition target_robot, Detector.Recognition target_puck){
+        if (shutdown){
+            return;
+        }
         switch (state){
             case MATING:
                 if (chargeController.isRunning()){
@@ -219,9 +274,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }
                     chargeController.setStallDelay(controlLoopTime / 2);
                 }else{
+                    Log.d("StalledShutdown", "starting charge controller");
                     chargeController.startController();
                 }
                 break;
+        }
+        if (shutdownRequest){
+            Log.e("StalledShutdown", "2. ShuttingDown At end of HLController");
+            shutdown();
         }
     }
 
@@ -239,7 +299,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
 
         usageStats = (UsageStats) new UsageStats(getApplicationContext());
-        StuckDetector stuckDetector = new StuckDetector();
+        StuckDetector stuckDetector = new StuckDetector(this);
 
         chargeController = (ChargeController) new ChargeController().setInitDelay(0)
                 .setName("chargeController").setThreadCount(1)
@@ -280,7 +340,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         getOutputs().getMasterController().addController(matingController);
         // Start the master controller after adding and starting any customer controllers.
         getOutputs().startMasterController();
-
     }
 
     @Override
