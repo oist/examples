@@ -78,7 +78,6 @@ public class StuckDetector implements WheelDataSubscriber {
     public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller, UsageStats usageStats){
         maxStallCntReached = 0;
         double currentSpeed = 0;
-        double lowerLimit = 0.1; // Wheel may not have reached full speed yet, but it should at least have increased towards the expected direction.
 
         switch (wheelSide){
             case LEFT:
@@ -92,10 +91,9 @@ public class StuckDetector implements WheelDataSubscriber {
                 Log.d("StallWarning", "ExpectedOutputR: " + expectedOutput);
                 break;
         }
-        double error = Math.abs(expectedOutput - currentSpeed);
-        Log.d("StallWarning", "Error: " + error);
-        // You've stalled. 200 is arbitrary but based on full speed of 300.
-        if (error > 70){
+
+        // You've stalled. If you expect a high output but observe a low one. Danger!
+        if (Math.abs(expectedOutput) > 0.1 && Math.abs(currentSpeed) < 20){
             // set stuck to true so controller will try getFree next loop.
             // keep track of number of times stalled
             switch (wheelSide){
