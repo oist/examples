@@ -214,6 +214,10 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             searchSameSpeedCnt++;
         }else{
             searchSameSpeedCnt++;
+            executor.schedule(new StallChecker(stuckDetector, output.left,
+                            output.right,
+                            this, usageStats, batteryVoltage),
+                    stallDelay, TimeUnit.MILLISECONDS);
         }
         if (searchSameSpeedCnt >= maxSearchSameSpeedCnt){
             searchSameSpeedCnt = 0;
@@ -336,13 +340,25 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         right = (right / (this.batteryVoltage / 3.3f)) * rightWheelMultiplier;
         float finalLeft = left;
         float finalRight = right;
-        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats, batteryVoltage),
+        executor.schedule(new StallChecker(stuckDetector, finalLeft, finalRight, this, usageStats, batteryVoltage),
                 stallDelay, TimeUnit.MILLISECONDS);
         usageStats.onSetOutput(left, right);
         super.setOutput(left, right);
     }
 
     public void stalledShutdownRequest(){
+    }
+
+    @Override
+    public void zeroController(WheelSide wheelSide) {
+        switch (wheelSide){
+            case LEFT:
+                super.setOutput(0, output.right);
+                break;
+            case RIGHT:
+                super.setOutput(output.left, 0);
+                break;
+        }
     }
 
     @Override

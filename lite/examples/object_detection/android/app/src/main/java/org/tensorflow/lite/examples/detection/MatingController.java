@@ -49,6 +49,18 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     }
 
+    @Override
+    public void zeroController(WheelSide wheelSide) {
+        switch (wheelSide){
+            case LEFT:
+                super.setOutput(0, output.right);
+                break;
+            case RIGHT:
+                super.setOutput(output.left, 0);
+                break;
+        }
+    }
+
     private enum State {
         SEARCHING, DECIDING, APPROACHING, WAITING, FLEEING
     }
@@ -358,7 +370,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         right = right * rightScalingFactor;
         float finalLeft = left;
         float finalRight = right;
-        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats, batteryVoltage),
+        executor.schedule(new StallChecker(stuckDetector, finalLeft, finalRight, this, usageStats, batteryVoltage),
                 stallDelay, TimeUnit.MILLISECONDS);
         usageStats.onSetOutput(left, right);
         super.setOutput(left, right);

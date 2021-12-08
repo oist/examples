@@ -99,6 +99,7 @@ public class StuckDetector implements WheelDataSubscriber {
         if (Math.abs(expectedOutput) > 0.1 && Math.abs(currentSpeed) < 20){
             // set stuck to true so controller will try getFree next loop.
             // keep track of number of times stalled
+            controller.zeroController(wheelSide);
             switch (wheelSide){
                 case LEFT:
                     stallCntL++;
@@ -127,7 +128,7 @@ public class StuckDetector implements WheelDataSubscriber {
                 highLevelControllerService.stalledShutdownRequest();
             }
             return true;
-        }else {
+        }else if (Math.abs(expectedOutput) > 0) {
             // Clear stall counts as you're no longer stalling
             switch (wheelSide){
                 case LEFT:

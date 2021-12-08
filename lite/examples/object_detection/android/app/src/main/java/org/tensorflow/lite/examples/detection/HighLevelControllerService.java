@@ -111,6 +111,10 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
     }
 
+    @Override
+    public void zeroController(WheelSide wheelSide) {
+    }
+
     private void shutdown(){
         //todo this should be moved to another method and this only sets a bool. The main control thread should call the rest of this at the end of the loop to ensure controllers aren't restarted in a race condition
         Log.e("StalledShutdown", "3. ShuttingDown");
