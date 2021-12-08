@@ -4,13 +4,16 @@ import android.content.Context;
 import android.util.Log;
 
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import jp.oist.abcvlib.core.inputs.microcontroller.BatteryDataSubscriber;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelDataSubscriber;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeDataSubscriber;
 import jp.oist.abcvlib.core.outputs.AbcvlibController;
+import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
+import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
-public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber, BatteryDataSubscriber {
+public class MatingController extends AbcvlibController implements WheelDataSubscriber, QRCodeDataSubscriber, BatteryDataSubscriber, StallAwareController {
 
     private QRCodePublisher qrCodePublisher;
     private float proximity = 0;
@@ -22,9 +25,28 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private float rightWheelMultiplier = 1;
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
+    private double wheelSpeedL = 0;
+    private double wheelSpeedR = 0;
 
     public void setStuckDetector(StuckDetector stuckDetector) {
         this.stuckDetector = stuckDetector;
+    }
+
+    @Override
+    public double getCurrentWheelSpeed(WheelSide wheelSide) {
+        switch (wheelSide){
+            case LEFT:
+                return this.wheelSpeedL;
+            case RIGHT:
+                return this.wheelSpeedR;
+            default:
+                return 401;
+        }
+    }
+
+    @Override
+    public void stalledShutdownRequest() {
+
     }
 
     private enum State {
@@ -58,6 +80,15 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private int speedL = 0;
     private int speedR = 0;
     private StuckDetector stuckDetector;
+    private ScheduledExecutorServiceWithException executor =
+            new ScheduledExecutorServiceWithException(1,
+                    new ProcessPriorityThreadFactory(Thread.MAX_PRIORITY,
+                            "stallEvaluation"));
+    private long stallDelay; // ms to wait to evaluate if stuck. Should be less than control loop time.
+
+    public void setStallDelay(long stallDelay) {
+        this.stallDelay = stallDelay;
+    }
 
     @Override
     public void onWheelDataUpdate(long timestamp, int wheelCountL, int wheelCountR, double wheelDistanceL, double wheelDistanceR, double wheelSpeedInstantL, double wheelSpeedInstantR, double wheelSpeedBufferedL, double wheelSpeedBufferedR, double wheelSpeedExpAvgL, double wheelSpeedExpAvgR) {
@@ -321,8 +352,13 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         // wheelMultipliers are an attempt to compensate for motor wear
         Log.d("Multiplier", "leftWheelMultiplier: " + leftWheelMultiplier);
         Log.d("Multiplier", "rightWheelMultiplier: " + rightWheelMultiplier);
-        left = (left / (this.batteryVoltage / 3.2f)) * leftWheelMultiplier;
-        right = (right / (this.batteryVoltage / 3.2f)) * rightWheelMultiplier;
+        left = (left / (this.batteryVoltage / 3.3f)) * leftWheelMultiplier;
+        right = (right / (this.batteryVoltage / 3.3f)) * rightWheelMultiplier;
+        float finalLeft = left;
+        float finalRight = right;
+        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats),
+                stallDelay, TimeUnit.MILLISECONDS);
+        usageStats.onSetOutput(left, right);
         super.setOutput(left, right);
     }
 
