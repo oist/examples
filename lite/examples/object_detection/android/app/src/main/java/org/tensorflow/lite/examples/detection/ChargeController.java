@@ -48,7 +48,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ScheduledFuture<?> mountTimer;
     private ScheduledFuture<?> dismountTimer;
     private ScheduledFuture<?> randTurnTimer;
-    private int dismountTime = 2000; // Milliseconds to backup
+    private int dismountTime = 1000; // Milliseconds to backup
     private int randTurnTime = 3000; // Milliseconds to turn in a random direction after dismounting
     private boolean missedPuck = false;
 
