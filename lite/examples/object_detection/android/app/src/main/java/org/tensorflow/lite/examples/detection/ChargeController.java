@@ -24,27 +24,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private StuckDetector stuckDetector;
     private double wheelSpeedL = 0;
     private double wheelSpeedR = 0;
-
-    public void setStuckDetector(StuckDetector stuckDetector) {
-        this.stuckDetector = stuckDetector;
-    }
-
-    public void setStallDelay(long stallDelay) {
-        this.stallDelay = stallDelay;
-    }
-
-    @Override
-    public double getCurrentWheelSpeed(WheelSide wheelSide) {
-        switch (wheelSide){
-            case LEFT:
-                return this.wheelSpeedL;
-            case RIGHT:
-                return this.wheelSpeedR;
-            default:
-                return 401;
-        }
-    }
-
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
     }
@@ -90,10 +69,28 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
 
     private boolean stalledShutdown = false;
-
-
     private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
     private int searchSameSpeedCnt = 0;
+
+    public void setStuckDetector(StuckDetector stuckDetector) {
+        this.stuckDetector = stuckDetector;
+    }
+
+    public void setStallDelay(long stallDelay) {
+        this.stallDelay = stallDelay;
+    }
+
+    @Override
+    public double getCurrentWheelSpeed(WheelSide wheelSide) {
+        switch (wheelSide){
+            case LEFT:
+                return this.wheelSpeedL;
+            case RIGHT:
+                return this.wheelSpeedR;
+            default:
+                return 401;
+        }
+    }
 
     @Override
     public void startController() {
