@@ -22,10 +22,10 @@ public class StallChecker implements Runnable{
     public void run() {
         usageStats.onExpectedOutput(expectedL, expectedR);
         // Note if checkStall returns true, it will also set stuck=true, so next control loop will execture the stuck sequence.
-        if (stuckDetector.checkStall(WheelSide.LEFT, (float) expectedL, controller)){
+        if (stuckDetector.checkStall(WheelSide.LEFT, (float) expectedL, controller, usageStats)){
             Log.w("StallWarning", "Robot has stalled once on left wheel");
         }
-        if(stuckDetector.checkStall(WheelSide.RIGHT, (float) expectedR, controller)){
+        if(stuckDetector.checkStall(WheelSide.RIGHT, (float) expectedR, controller, usageStats)){
             Log.w("StallWarning", "Robot has stalled once on right wheel");
         }
     }

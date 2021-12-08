@@ -26,6 +26,7 @@ public class StuckDetector implements WheelDataSubscriber {
     private int freeCntR = 0;
     private double wheelSpeedBufferedL = 0;
     private double wheelSpeedBufferedR = 0;
+    private int maxStallCntReached = 0;
 
     public StuckDetector(HighLevelControllerService highLevelControllerService){
         this.highLevelControllerService = highLevelControllerService;
@@ -74,7 +75,8 @@ public class StuckDetector implements WheelDataSubscriber {
      * Call this with a controller on a delayed executor. If returns true, shut down that wheel.
      * This class counts the number of times checkStall and if it exceeds 20 times. Turns off robot.
      */
-    public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller){
+    public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller, UsageStats usageStats){
+        maxStallCntReached = 0;
         double currentSpeed = 0;
         double lowerLimit = 0.1; // Wheel may not have reached full speed yet, but it should at least have increased towards the expected direction.
 
@@ -105,15 +107,20 @@ public class StuckDetector implements WheelDataSubscriber {
                     break;
             }
 
+            usageStats.onStallCntUpdate(stallCntL, stallCntR);
+
             if ((stallCntL > stuckCount) || (stallCntR > stuckCount)){
                 // Setting stuck to true will use controllers getFree method on next action selection.
                 Log.d("StallWarning", "You stalled more than stuckCount");
                 Log.d("StuckDetector", "You stalled more than stuckCount");
                 stuck = true;
+                usageStats.onStuckUpdate(wheelSide, 1);
             }
             if ((stallCntL > maxStallCnt) || (stallCntR > maxStallCnt)){
                 // If you've tried to get unstuck, but remain stuck, shut down to prevent further wear to motors
                 Log.e("StallWarning", "You stalled more than maxStallCnt Shutting Down");
+                maxStallCntReached = 1;
+                usageStats.onMaxStallStatusChange(wheelSide, maxStallCntReached);
                 highLevelControllerService.stalledShutdownRequest();
             }
             return true;
@@ -123,21 +130,29 @@ public class StuckDetector implements WheelDataSubscriber {
                 case LEFT:
                     Log.d("StallWarning", "Left Wheel appears to be free. Adding 1 to freeCntL");
                     freeCntL++;
+                    usageStats.onFreeCntUpdate(freeCntL, freeCntR);
                     if (freeCntL > minFreeCnt){
                         Log.d("StallWarning", "Left Wheel appears to be free. Resetting stuck and stall counts");
                         stallCntL = 0;
+                        usageStats.onStallCntUpdate(stallCntL, stallCntR);
                         freeCntL = 0;
+                        usageStats.onFreeCntUpdate(freeCntL, freeCntR);
                         stuck = false;
+                        usageStats.onStuckUpdate(wheelSide, 0);
                     }
                     break;
                 case RIGHT:
                     Log.d("StallWarning", "Right Wheel appears to be free. Adding 1 to freeCntR");
                     freeCntR++;
+                    usageStats.onFreeCntUpdate(freeCntL, freeCntR);
                     if (freeCntR > minFreeCnt){
                         Log.d("StallWarning", "Right Wheel appears to be free. Resetting stuck and stall counts");
                         stallCntR = 0;
+                        usageStats.onStallCntUpdate(stallCntL, stallCntR);
                         freeCntR = 0;
+                        usageStats.onFreeCntUpdate(freeCntL, freeCntR);
                         stuck = false;
+                        usageStats.onStuckUpdate(wheelSide, 0);
                     }
                     break;
             }

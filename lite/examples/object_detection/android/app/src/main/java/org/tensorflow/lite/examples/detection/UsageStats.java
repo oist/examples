@@ -57,12 +57,22 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
     private float wheelOutputL = 0;
     private float wheelOutputR = 0;
 
-    private String header = "BatteryLevel,State,DistanceL,DistanceR,SpeedLExp,SpeedRExp,SpeedLBuff,SpeedRBuff,OutputL,OutputR,ExpectedL,ExpectedR" + System.getProperty("line.separator");
+    private String header = "BatteryLevel,State,DistanceL,DistanceR,SpeedLExp,SpeedRExp," +
+            "SpeedLBuff,SpeedRBuff,OutputL,OutputR,ExpectedL,ExpectedR," +
+            "stallCntL,stallCntR,stuckL,stuckR,freeCntL,freeCntR,maxStallL,maxStallR" + System.getProperty("line.separator");
     private int stuck = 0;
     private double wheelSpeedBufferedL = 0;
     private double wheelSpeedBufferedR = 0;
     private float expectedOutputL = 0;
     private float expectedOutputR = 0;
+    private int stallCntL = 0;
+    private int stallCntR = 0;
+    private int stuckL = 0;
+    private int stuckR = 0;
+    private int freeCntL = 0;
+    private int freeCntR = 0;
+    private int maxStallL = 0;
+    private int maxStallR = 0;
 
     public UsageStats(Context context){
         dir = context.getFilesDir();
@@ -119,7 +129,15 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         string += format.format(wheelOutputL) + ",";
         string += format.format(wheelOutputR) + ",";
         string += format.format(expectedOutputL) + ",";
-        string += format.format(expectedOutputR) + System.lineSeparator();
+        string += format.format(expectedOutputR) + ",";
+        string += format.format(stallCntL) + ",";
+        string += format.format(stallCntR) + ",";
+        string += format.format(stuckL) + ",";
+        string += format.format(stuckR) + ",";
+        string += format.format(freeCntL) + ",";
+        string += format.format(freeCntR) + ",";
+        string += format.format(maxStallL) + ",";
+        string += format.format(maxStallR) + System.lineSeparator();
 
         Log.v(TAG, string);
         try {
@@ -127,10 +145,6 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public void onStuckEval(int stuck){
-        this.stuck = stuck;
     }
 
     public void onSetOutput(float l, float r){
@@ -202,5 +216,37 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
     public void onExpectedOutput(float l, float r) {
         this.expectedOutputL = l;
         this.expectedOutputR = r;
+    }
+
+    public void onStallCntUpdate(int stallCntL, int stallCntR) {
+        this.stallCntL = stallCntL;
+        this.stallCntR = stallCntR;
+    }
+
+    public void onStuckUpdate(WheelSide wheelSide, int stuck) {
+        switch (wheelSide){
+            case LEFT:
+                this.stuckL = stuck;
+                break;
+            case RIGHT:
+                this.stuckR = stuck;
+                break;
+        }
+    }
+
+    public void onFreeCntUpdate(int freeCntL, int freeCntR) {
+        this.freeCntL = freeCntL;
+        this.freeCntR = freeCntR;
+    }
+
+    public void onMaxStallStatusChange(WheelSide wheelSide, int maxStallCntReached) {
+        switch (wheelSide){
+            case LEFT:
+                this.maxStallL = maxStallCntReached;
+                break;
+            case RIGHT:
+                this.maxStallR = maxStallCntReached;
+                break;
+        }
     }
 }
