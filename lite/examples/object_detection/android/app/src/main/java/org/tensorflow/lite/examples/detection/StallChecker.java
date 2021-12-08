@@ -9,11 +9,12 @@ public class StallChecker implements Runnable{
     private final float expectedR;
     private final StallAwareController controller;
     private final UsageStats usageStats;
+    private final float scalingFactor = 150;
 
     public StallChecker(StuckDetector stuckDetector, float expectedL, float expectedR, StallAwareController controller, UsageStats usageStats){
         this.stuckDetector = stuckDetector;
-        this.expectedL = expectedL;
-        this.expectedR = expectedR;
+        this.expectedL = expectedL * scalingFactor;
+        this.expectedR = expectedR * scalingFactor;
         this.controller = controller;
         this.usageStats = usageStats;
     }

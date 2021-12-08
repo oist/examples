@@ -75,7 +75,6 @@ public class StuckDetector implements WheelDataSubscriber {
      * This class counts the number of times checkStall and if it exceeds 20 times. Turns off robot.
      */
     public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller){
-        expectedOutput = expectedOutput * 150; // appx scaling from [-1,1] to [full speed rev, full speed forward]
         double currentSpeed = 0;
         double lowerLimit = 0.1; // Wheel may not have reached full speed yet, but it should at least have increased towards the expected direction.
 
