@@ -272,7 +272,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }else{
                         chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
                     }
-                    chargeController.setStallDelay(controlLoopTime / 2);
+                    chargeController.setStallDelay(controlLoopTime);
                 }else{
                     Log.d("StalledShutdown", "starting charge controller");
                     chargeController.startController();
@@ -321,7 +321,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
         publisherManager = new PublisherManager();
         wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
-        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats);
+        wheelData.addSubscriber(chargeController).addSubscriber(matingController).addSubscriber(usageStats).addSubscriber(stuckDetector);
         batteryData = new BatteryData.Builder(this, publisherManager, abcvlibLooper).build();
         batteryData.addSubscriber(chargeController).addSubscriber(this).addSubscriber(usageStats).addSubscriber(matingController);
 

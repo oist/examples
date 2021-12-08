@@ -57,10 +57,12 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
     private float wheelOutputL = 0;
     private float wheelOutputR = 0;
 
-    private String header = "BatteryLevel,State,DistanceL,DistanceR,SpeedLExp,SpeedRExp,SpeedLBuff,SpeedRBuff,OutputL,OutputR" + System.getProperty("line.separator");
+    private String header = "BatteryLevel,State,DistanceL,DistanceR,SpeedLExp,SpeedRExp,SpeedLBuff,SpeedRBuff,OutputL,OutputR,ExpectedL,ExpectedR" + System.getProperty("line.separator");
     private int stuck = 0;
     private double wheelSpeedBufferedL = 0;
     private double wheelSpeedBufferedR = 0;
+    private float expectedOutputL = 0;
+    private float expectedOutputR = 0;
 
     public UsageStats(Context context){
         dir = context.getFilesDir();
@@ -115,7 +117,9 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         string += format.format(wheelSpeedBufferedL) + ",";
         string += format.format(wheelSpeedBufferedR) + ",";
         string += format.format(wheelOutputL) + ",";
-        string += format.format(wheelOutputR) + System.lineSeparator();
+        string += format.format(wheelOutputR) + ",";
+        string += format.format(expectedOutputL) + ",";
+        string += format.format(expectedOutputR) + System.lineSeparator();
 
         Log.v(TAG, string);
         try {
@@ -193,5 +197,10 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
         this.wheelSpeedExpAvgR = wheelSpeedExpAvgR;
         this.wheelSpeedBufferedL = wheelSpeedBufferedL;
         this.wheelSpeedBufferedR = wheelSpeedBufferedR;
+    }
+
+    public void onExpectedOutput(float l, float r) {
+        this.expectedOutputL = l;
+        this.expectedOutputR = r;
     }
 }
