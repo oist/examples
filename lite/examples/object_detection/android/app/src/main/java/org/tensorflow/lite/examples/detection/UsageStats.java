@@ -149,7 +149,6 @@ public class UsageStats implements BatteryDataSubscriber, WheelDataSubscriber, D
 
     public void onSetOutput(float l, float r){
         // Make propotional to speed for easier comparison
-
         this.wheelOutputL = l;
         this.wheelOutputR = r;
     }

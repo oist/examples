@@ -1,7 +1,6 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.util.Log;
-import android.widget.Toast;
 
 import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
@@ -337,7 +336,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         right = (right / (this.batteryVoltage / 3.3f)) * rightWheelMultiplier;
         float finalLeft = left;
         float finalRight = right;
-        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats),
+        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats, batteryVoltage),
                 stallDelay, TimeUnit.MILLISECONDS);
         usageStats.onSetOutput(left, right);
         super.setOutput(left, right);

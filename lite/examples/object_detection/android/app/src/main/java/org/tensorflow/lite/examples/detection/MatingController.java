@@ -348,15 +348,17 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     @Override
     protected synchronized void setOutput(float left, float right) {
-        // Scale output based on battery voltage so wheels to slow down too much. Normalized to full battery around 3.3.
+        // Scale output based on battery voltage so wheels to slow down too much. Normalized to full battery around 3.2.
         // wheelMultipliers are an attempt to compensate for motor wear
         Log.d("Multiplier", "leftWheelMultiplier: " + leftWheelMultiplier);
         Log.d("Multiplier", "rightWheelMultiplier: " + rightWheelMultiplier);
-        left = (left / (this.batteryVoltage / 3.3f)) * leftWheelMultiplier;
-        right = (right / (this.batteryVoltage / 3.3f)) * rightWheelMultiplier;
+        float leftScalingFactor = leftWheelMultiplier / (this.batteryVoltage / 3.2f);
+        float rightScalingFactor = leftWheelMultiplier / (this.batteryVoltage / 3.2f);
+        left = left * leftScalingFactor;
+        right = right * rightScalingFactor;
         float finalLeft = left;
         float finalRight = right;
-        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats),
+        executor.schedule(new StallChecker(stuckDetector, left, right, this, usageStats, batteryVoltage),
                 stallDelay, TimeUnit.MILLISECONDS);
         usageStats.onSetOutput(left, right);
         super.setOutput(left, right);
