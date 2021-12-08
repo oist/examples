@@ -77,6 +77,7 @@ public class StuckDetector implements WheelDataSubscriber {
      */
     public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller, UsageStats usageStats){
         maxStallCntReached = 0;
+        usageStats.onMaxStallStatusChange(wheelSide, maxStallCntReached);
         double currentSpeed = 0;
 
         switch (wheelSide){
@@ -92,6 +93,8 @@ public class StuckDetector implements WheelDataSubscriber {
                 break;
         }
 
+        int stallCnt = 0;
+
         // You've stalled. If you expect a high output but observe a low one. Danger!
         if (Math.abs(expectedOutput) > 0.1 && Math.abs(currentSpeed) < 20){
             // set stuck to true so controller will try getFree next loop.
@@ -99,22 +102,24 @@ public class StuckDetector implements WheelDataSubscriber {
             switch (wheelSide){
                 case LEFT:
                     stallCntL++;
+                    stallCnt = stallCntL;
                     break;
                 case RIGHT:
                     stallCntR++;
+                    stallCnt = stallCntR;
                     break;
             }
 
             usageStats.onStallCntUpdate(stallCntL, stallCntR);
 
-            if ((stallCntL > stuckCount) || (stallCntR > stuckCount)){
+            if (stallCnt > stuckCount){
                 // Setting stuck to true will use controllers getFree method on next action selection.
                 Log.d("StallWarning", "You stalled more than stuckCount");
                 Log.d("StuckDetector", "You stalled more than stuckCount");
                 stuck = true;
                 usageStats.onStuckUpdate(wheelSide, 1);
             }
-            if ((stallCntL > maxStallCnt) || (stallCntR > maxStallCnt)){
+            if (stallCnt > maxStallCnt){
                 // If you've tried to get unstuck, but remain stuck, shut down to prevent further wear to motors
                 Log.e("StallWarning", "You stalled more than maxStallCnt Shutting Down");
                 maxStallCntReached = 1;
