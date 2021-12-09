@@ -260,6 +260,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                         matingController.setTarget(false, 0, 0, "", leftWheelMultiplier, rightWheelMultiplier);
                     }
                 }else{
+                    matingController.setStallDelay(controlLoopTime);
                     matingController.startController();
                 }
                 break;
@@ -279,9 +280,9 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }else{
                         chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
                     }
-                    chargeController.setStallDelay(controlLoopTime);
                 }else{
                     Log.d("StalledShutdown", "starting charge controller");
+                    chargeController.setStallDelay(controlLoopTime);
                     chargeController.startController();
                 }
                 break;
