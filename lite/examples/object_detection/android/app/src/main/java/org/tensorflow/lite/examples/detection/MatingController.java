@@ -294,6 +294,10 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             searchSameSpeedCnt++;
         }else{
             searchSameSpeedCnt++;
+            executor.schedule(new StallChecker(stuckDetector, output.left,
+                            output.right,
+                            this, usageStats, batteryVoltage),
+                    stallDelay, TimeUnit.MILLISECONDS);
         }
         if (searchSameSpeedCnt >= maxSearchSameSpeedCnt){
             searchSameSpeedCnt = 0;
