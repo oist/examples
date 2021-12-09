@@ -173,4 +173,12 @@ public class StuckDetector implements WheelDataSubscriber {
         this.wheelSpeedBufferedL = wheelSpeedBufferedL;
         this.wheelSpeedBufferedR = wheelSpeedBufferedR;
     }
+
+    public void restore() {
+        stallCntL = 0;
+        stallCntR = 0;
+        stuck = false;
+        freeCntL = 0;
+        freeCntR = 0;
+    }
 }

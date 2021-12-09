@@ -69,6 +69,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private QRCodeData qrCodeData;
     private UsageStats usageStats;
     private boolean shutdown = false;
+    private StuckDetector stuckDetector;
 
     @NonNull
     @Override
@@ -137,6 +138,8 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     }
 
     public void restore() {
+        // todo need to reset stall counts, stuck bool and free counts to zero in stuckdetector
+        stuckDetector.restore();
         this.shutdownRequest = false;
         this.shutdown = false;
         getOutputs().getMasterController().addController(chargeController);
@@ -303,7 +306,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
 
         usageStats = (UsageStats) new UsageStats(getApplicationContext());
-        StuckDetector stuckDetector = new StuckDetector(this);
+        stuckDetector = new StuckDetector(this);
 
         chargeController = (ChargeController) new ChargeController().setInitDelay(0)
                 .setName("chargeController").setThreadCount(1)
