@@ -211,6 +211,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
             searchSameSpeedCnt++;
         }else{
             searchSameSpeedCnt++;
+            Log.d("CheckStallEval", "Creating Stall Checker from charging search on thread: " + Thread.currentThread().getName());
             executor.schedule(new StallChecker(stuckDetector, output.left,
                             output.right,
                             this, usageStats, batteryVoltage),
@@ -337,6 +338,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         right = (right / (this.batteryVoltage / 3.3f)) * rightWheelMultiplier;
         float finalLeft = left;
         float finalRight = right;
+        Log.d("CheckStallEval", "Creating Stall Checker from charging setOutput on thread: " + Thread.currentThread().getName());
         executor.schedule(new StallChecker(stuckDetector, finalLeft, finalRight, this, usageStats, batteryVoltage),
                 stallDelay, TimeUnit.MILLISECONDS);
         usageStats.onSetOutput(left, right);

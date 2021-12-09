@@ -248,6 +248,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         switch (state){
             case MATING:
                 if (chargeController.isRunning()){
+                    Log.d("HL_Switch", "Turning off chargingController");
                     chargeController.stopController();
                 }
                 if (matingController.isRunning()){
@@ -260,12 +261,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                         matingController.setTarget(false, 0, 0, "", leftWheelMultiplier, rightWheelMultiplier);
                     }
                 }else{
+                    Log.d("HL_Switch", "starting matingController");
                     matingController.setStallDelay(controlLoopTime);
                     matingController.startController();
                 }
                 break;
             case CHARGING:
                 if (matingController.isRunning()){
+                    Log.d("HL_Switch", "Turning off matingController");
                     matingController.stopController();
                 }
                 if (chargeController.isRunning()){
@@ -281,7 +284,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                         chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
                     }
                 }else{
-                    Log.d("StalledShutdown", "starting charge controller");
+                    Log.d("HL_Switch", "starting charge controller");
                     chargeController.setStallDelay(controlLoopTime);
                     chargeController.startController();
                 }

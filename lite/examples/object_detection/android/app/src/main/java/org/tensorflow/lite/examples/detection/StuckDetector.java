@@ -27,6 +27,7 @@ public class StuckDetector implements WheelDataSubscriber {
     private double wheelSpeedBufferedL = 0;
     private double wheelSpeedBufferedR = 0;
     private int maxStallCntReached = 0;
+    private int checkStallsToEval = 0;
 
     public StuckDetector(HighLevelControllerService highLevelControllerService){
         this.highLevelControllerService = highLevelControllerService;
@@ -76,6 +77,8 @@ public class StuckDetector implements WheelDataSubscriber {
      * This class counts the number of times checkStall and if it exceeds 20 times. Turns off robot.
      */
     public synchronized boolean checkStall(@NonNull WheelSide wheelSide, float expectedOutput, StallAwareController controller, UsageStats usageStats){
+        checkStallsToEval++;
+        Log.d("CheckStallEval", "checksLeft: " + checkStallsToEval);
         maxStallCntReached = 0;
         usageStats.onMaxStallStatusChange(wheelSide, maxStallCntReached);
         double currentSpeed = 0;
@@ -127,6 +130,8 @@ public class StuckDetector implements WheelDataSubscriber {
                 usageStats.onMaxStallStatusChange(wheelSide, maxStallCntReached);
                 highLevelControllerService.stalledShutdownRequest();
             }
+            checkStallsToEval--;
+            Log.d("CheckStallEval", "checksLeft: " + checkStallsToEval);
             return true;
         }else if (Math.abs(expectedOutput) > 0) {
             // Clear stall counts as you're no longer stalling
@@ -161,6 +166,8 @@ public class StuckDetector implements WheelDataSubscriber {
                     break;
             }
         }
+        checkStallsToEval--;
+        Log.d("CheckStallEval", "checksLeft: " + checkStallsToEval);
         return false;
     }
 

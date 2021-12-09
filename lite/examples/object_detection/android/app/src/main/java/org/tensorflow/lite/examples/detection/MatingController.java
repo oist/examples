@@ -294,6 +294,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
             searchSameSpeedCnt++;
         }else{
             searchSameSpeedCnt++;
+            Log.d("CheckStallEval", "Creating Stall Checker from mating search() on thread:" + Thread.currentThread().getName());
             executor.schedule(new StallChecker(stuckDetector, output.left,
                             output.right,
                             this, usageStats, batteryVoltage),
@@ -374,6 +375,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         right = right * rightScalingFactor;
         float finalLeft = left;
         float finalRight = right;
+        Log.d("CheckStallEval", "Creating Stall Checker from mating setOutputon thread:" + Thread.currentThread().getName());
         executor.schedule(new StallChecker(stuckDetector, finalLeft, finalRight, this, usageStats, batteryVoltage),
                 stallDelay, TimeUnit.MILLISECONDS);
         usageStats.onSetOutput(left, right);
