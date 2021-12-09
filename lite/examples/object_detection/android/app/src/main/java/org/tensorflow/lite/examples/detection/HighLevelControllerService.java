@@ -120,18 +120,18 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         //todo this should be moved to another method and this only sets a bool. The main control thread should call the rest of this at the end of the loop to ensure controllers aren't restarted in a race condition
         Log.e("StalledShutdown", "3. ShuttingDown");
         if (chargeController != null){
+            getOutputs().getMasterController().removeController(chargeController);
             if (chargeController.isRunning()){
                 Log.e("StalledShutdown", "4. Stopping ChargeController");
                 chargeController.stopController();
-                getOutputs().getMasterController().removeController(chargeController);
 
             }
         }
         if (matingController != null){
+            getOutputs().getMasterController().removeController(matingController);
             if (matingController.isRunning()){
                 Log.e("StalledShutdown", "Stopping MatingController");
                 matingController.stopController();
-                getOutputs().getMasterController().removeController(matingController);
             }
         }
         shutdown = true;
@@ -250,6 +250,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 if (chargeController.isRunning()){
                     Log.d("HL_Switch", "Turning off chargingController");
                     chargeController.stopController();
+//                    getOutputs().getMasterController().removeController(chargeController);
                 }
                 if (matingController.isRunning()){
                     if (target_robot.getBBArea() > 0){
@@ -264,12 +265,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     Log.d("HL_Switch", "starting matingController");
                     matingController.setStallDelay(controlLoopTime);
                     matingController.startController();
+//                    getOutputs().getMasterController().addController(matingController);
                 }
                 break;
             case CHARGING:
                 if (matingController.isRunning()){
                     Log.d("HL_Switch", "Turning off matingController");
                     matingController.stopController();
+//                    getOutputs().getMasterController().removeController(matingController);
                 }
                 if (chargeController.isRunning()){
                     if (target_puck.getBBArea() > 0){
@@ -287,6 +290,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     Log.d("HL_Switch", "starting charge controller");
                     chargeController.setStallDelay(controlLoopTime);
                     chargeController.startController();
+//                    getOutputs().getMasterController().addController(chargeController);
                 }
                 break;
         }
