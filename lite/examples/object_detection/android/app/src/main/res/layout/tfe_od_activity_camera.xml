@@ -80,7 +80,7 @@
             app:srcCompat="@drawable/normal" />
 
         <com.google.android.material.slider.Slider
-            android:id="@+id/slider"
+            android:id="@+id/wheelSlider"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:value="0"
@@ -89,6 +89,27 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="@+id/face"
             app:layout_constraintStart_toStartOf="parent" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/minMatingVoltageSlider"
+            android:layout_width="200dp"
+            android:layout_height="50dp"
+            android:value="2.95"
+            android:valueFrom="2.7"
+            android:valueTo="3.4"
+            app:layout_constraintBottom_toTopOf="@+id/wheelSlider"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/maxChargingVoltageSlider"
+            android:layout_width="200dp"
+            android:layout_height="50dp"
+            android:value="3.15"
+            android:valueFrom="2.7"
+            android:valueTo="3.4"
+            app:layout_constraintBottom_toTopOf="@+id/wheelSlider"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <FrameLayout
             android:id="@+id/qrCodeContainer"

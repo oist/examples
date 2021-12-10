@@ -31,6 +31,8 @@ import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
 import jp.oist.abcvlib.core.inputs.phone.ImageData;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeData;
 
+import com.google.android.material.slider.RangeSlider;
+import com.google.android.material.slider.BaseOnChangeListener;
 import com.google.android.material.slider.Slider;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.ChecksumException;
@@ -42,7 +44,7 @@ import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
 public class HighLevelControllerService extends AbcvlibService implements IOReadyListener,
-        BatteryDataSubscriber, LifecycleOwner, Slider.OnChangeListener, StallAwareController {
+        BatteryDataSubscriber, LifecycleOwner, StallAwareController {
 
     private LifecycleRegistry lifecycleRegistry;
     private QRCodePublisher qrCodePublisher;
@@ -79,12 +81,9 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
     /**
      * Allows GUI slider to set wheel multiplier in an effort to offset motor wear over time.
-     * @param slider
      * @param value
-     * @param fromUser
      */
-    @Override
-    public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
+    public void onWheelBiasChange(float value) {
         if (value > 0){
             rightWheelMultiplier = 1;
             leftWheelMultiplier = 1 + Math.abs(value);
@@ -95,6 +94,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
             leftWheelMultiplier = 1;
             rightWheelMultiplier = 1;
         }
+    }
+
+    public void onMinMatingVoltageSliderChange(float value){
+        minMatingVoltage = value;
+    }
+
+    public void onMaxChargingVoltageSliderChange(float value){
+        maxChargingVoltage = value;
     }
 
     @Override

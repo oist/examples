@@ -17,12 +17,9 @@
 package org.tensorflow.lite.examples.detection;
 
 import android.Manifest;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.Fragment;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
@@ -59,6 +56,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.slider.RangeSlider;
 import com.google.android.material.slider.Slider;
 
 import java.nio.ByteBuffer;
@@ -105,10 +103,13 @@ public abstract class CameraActivity extends AppCompatActivity
   private TextView threadsTextView;
   protected HighLevelControllerService highLevelControllerService;
   private boolean mBound = false;
-  private Slider slider;
+  private Slider wheelBiasSlider;
+  private Slider minMatingVoltageSlider;
+  private Slider maxChargingVoltageSlider;
 
   private QRCode qrCode;
 
+  private RangeSlider thresholdSlider;
   /** Defines callbacks for service binding, passed to bindService() */
   private ServiceConnection connection = new ServiceConnection() {
 
@@ -121,8 +122,27 @@ public abstract class CameraActivity extends AppCompatActivity
       mBound = true;
       highLevelControllerService.setQRCodePublisher(CameraActivity.this);
       highLevelControllerService.setCameraActivity(CameraActivity.this);
-      slider = findViewById(R.id.slider);
-      slider.addOnChangeListener(highLevelControllerService);
+      wheelBiasSlider = findViewById(R.id.wheelSlider);
+      wheelBiasSlider.addOnChangeListener(new Slider.OnChangeListener() {
+        @Override
+        public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
+          highLevelControllerService.onWheelBiasChange(value);
+        }
+      });
+      minMatingVoltageSlider = findViewById(R.id.minMatingVoltageSlider);
+      minMatingVoltageSlider.addOnChangeListener(new Slider.OnChangeListener() {
+        @Override
+        public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
+          highLevelControllerService.onMinMatingVoltageSliderChange(value);
+        }
+      });
+      maxChargingVoltageSlider = findViewById(R.id.maxChargingVoltageSlider);
+      maxChargingVoltageSlider.addOnChangeListener(new Slider.OnChangeListener() {
+        @Override
+        public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
+          highLevelControllerService.onMaxChargingVoltageSliderChange(value);
+        }
+      });
     }
 
     @Override
