@@ -125,12 +125,19 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
 
     @Override
     public void startController() {
+        genes.playGenes();
         state = State.SEARCHING;
         flipToArms();
         stuckDetector.startTimer(15000);
         usageStats.onStateChange("Mating_" + state.name());
         qrCodePublisher.setFace(Face.MATE_SEARCHING);
         super.startController();
+    }
+
+    @Override
+    public void stopController() {
+        genes.stopPlayingGenes();
+        super.stopController();
     }
 
     @Override

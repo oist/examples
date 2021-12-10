@@ -42,16 +42,22 @@ public class Genes implements Runnable{
         for (int i = 1; i < freqs.length - 1; i++){
             freqs[i] = freqs[i-1] * (float) Math.pow(2.0f, (1.0f / 12.0f));
         }
-        tonePlayingFuture = toneExecutor.schedule(this, 0, TimeUnit.SECONDS);
 
         // Unit test to test mating with only one robot. Keeping commented for reference.
-
 //        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
 //            @Override
 //            public void run() {
 //                exchangeGenes(Arrays.toString(genes));
 //            }
 //        }, 10, 10, TimeUnit.SECONDS);
+    }
+
+    public void playGenes(){
+        tonePlayingFuture = toneExecutor.schedule(this, 0, TimeUnit.SECONDS);
+    }
+
+    public void stopPlayingGenes(){
+        tonePlayingFuture.cancel(true);
     }
 
     public int[] parseIncomingGenes(String incomingGenes){
