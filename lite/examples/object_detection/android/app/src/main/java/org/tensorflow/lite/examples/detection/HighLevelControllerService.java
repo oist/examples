@@ -61,6 +61,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private float center = 320f * 0.5f; // As camera is offcenter, this is not exactly half of frame
     private float batteryVoltage = 0;
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.01f);
+    private float minBattVoltage = 2.7f;
     private float minMatingVoltage = 2.95f;
     private float maxChargingVoltage = 3.15f;
     private ImageData imageData;
@@ -75,7 +76,10 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
             new ScheduledExecutorServiceWithException(1,
                     new ProcessPriorityThreadFactory(Thread.MAX_PRIORITY,
                             "highLevelController"));
-    private float minBattVoltage = 2.8f;
+    private ScheduledExecutorServiceWithException batteryLevelUpdater =
+            new ScheduledExecutorServiceWithException(1,
+                    new ProcessPriorityThreadFactory(Thread.MIN_PRIORITY,
+                            "batteryLevelUpdater"));
     private boolean lowBatt = false;
 
     private enum State {
@@ -381,6 +385,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         Log.d("race", "start publishers end");
 
         executor.scheduleWithFixedDelay(this, 1000, controlLoopTime, TimeUnit.MILLISECONDS);
+        batteryLevelUpdater.scheduleWithFixedDelay(() -> cameraActivity.updateBatteryIcon(batteryVoltage), 1000, 1000, TimeUnit.MILLISECONDS);
 
         // Adds your custom controller to the compounding master controller.
         getOutputs().getMasterController().addController(chargeController);

@@ -247,7 +247,7 @@ public abstract class CameraActivity extends AppCompatActivity
   }
 
   public void updateBatteryIcon(double voltage){
-    int percent = (int) Math.round(100 * (voltage / 3.3));
+    int percent = (int) Math.round(100 * ((voltage - 2.7)  / 0.5));
     batteryIcon.setChargeLevel(percent);
   }
 
