@@ -344,8 +344,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         // wheelMultipliers are an attempt to compensate for motor wear
         Log.d("Multiplier", "leftWheelMultiplier: " + leftWheelMultiplier);
         Log.d("Multiplier", "rightWheelMultiplier: " + rightWheelMultiplier);
-        left = (left / (this.batteryVoltage / 3.3f)) * leftWheelMultiplier;
-        right = (right / (this.batteryVoltage / 3.3f)) * rightWheelMultiplier;
+        left = (left / (this.batteryVoltage / 3.2f)) * leftWheelMultiplier;
+        right = (right / (this.batteryVoltage / 3.2f)) * rightWheelMultiplier;
         float finalLeft = left;
         float finalRight = right;
         Log.d("CheckStallEval", "Creating Stall Checker from charging setOutput on thread: " + Thread.currentThread().getName());
