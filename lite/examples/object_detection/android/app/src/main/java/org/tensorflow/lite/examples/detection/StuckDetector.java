@@ -16,8 +16,8 @@ public class StuckDetector implements WheelDataSubscriber {
     private ScheduledFuture<?> whenStuck;
     private boolean stuck = false;
     private final ScheduledExecutorService stuckTimer = Executors.newSingleThreadScheduledExecutor();
-    private final int maxStallCnt = 10;
-    private final int stuckCount = 5;
+    private final int maxStallCnt = 30;
+    private final int stuckCount = 10;
     private HighLevelControllerService highLevelControllerService;
     private int minFreeCnt = 3;
     private int stallCntL = 0;
