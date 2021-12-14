@@ -171,27 +171,11 @@ public abstract class CameraActivity extends AppCompatActivity
             1, new ProcessPriorityThreadFactory(Thread.NORM_PRIORITY, "qrCodeDetection")
     );
 
-
-
     setContentView(R.layout.tfe_od_activity_camera);
     // create a new QRCode object with input args point to the FragmentManager and your layout fragment where you want to generate the qrcode image.
     qrCode = new QRCode(getSupportFragmentManager(), R.id.qrCodeContainer);
 
-    // Face
-
-    // Instantiate an ImageView and define its properties
     face = findViewById(R.id.face);
-
-    // set the ImageView bounds to match the Drawable's dimensions
-//    imageView.setAdjustViewBounds(true);
-//    imageView.setLayoutParams(new ViewGroup.LayoutParams(
-//            ViewGroup.LayoutParams.WRAP_CONTENT,
-//            ViewGroup.LayoutParams.WRAP_CONTENT));
-
-
-//    Toolbar toolbar = findViewById(R.id.toolbar);
-//    setSupportActionBar(toolbar);
-//    getSupportActionBar().setDisplayShowTitleEnabled(false);
 
     if (hasPermission()) {
       setFragment();
@@ -617,7 +601,6 @@ public abstract class CameraActivity extends AppCompatActivity
 
       camera2Fragment.setCamera(cameraId);
       fragment = camera2Fragment;
-//      camera2Fragment.openCamera(1080, 2088);
     } else {
       fragment =
           new LegacyCameraConnectionFragment(this, getLayoutId(), getDesiredPreviewFrameSize());
