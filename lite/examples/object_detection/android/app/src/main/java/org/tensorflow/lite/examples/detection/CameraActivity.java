@@ -159,7 +159,6 @@ public abstract class CameraActivity extends AppCompatActivity
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
-    Log.e("race", "6");
     LOGGER.d("onCreate " + this);
     super.onCreate(null);
     getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -264,8 +263,6 @@ public abstract class CameraActivity extends AppCompatActivity
 
     plusImageView.setOnClickListener(this);
     minusImageView.setOnClickListener(this);
-
-    Log.e("race", "7");
   }
 
   public void shutdownDialog(){
@@ -456,26 +453,22 @@ public abstract class CameraActivity extends AppCompatActivity
 
   @Override
   public synchronized void onStart() {
-    Log.e("race", "8");
     LOGGER.d("onStart " + this);
     super.onStart();
     setNumThreads(5);
     Intent intent = new Intent(this, HighLevelControllerService.class);
     startService(intent);
     bindService(intent, connection, Context.BIND_AUTO_CREATE);
-    Log.e("race", "9");
   }
 
   @Override
   public synchronized void onResume() {
-    Log.e("race", "10");
     LOGGER.d("onResume " + this);
     super.onResume();
 
     handlerThread = new HandlerThread("inference");
     handlerThread.start();
     handler = new Handler(handlerThread.getLooper());
-    Log.e("race", "11");
   }
 
   @Override
@@ -517,7 +510,6 @@ public abstract class CameraActivity extends AppCompatActivity
   @Override
   public void onRequestPermissionsResult(
       final int requestCode, final String[] permissions, final int[] grantResults) {
-    Log.e("race", "12");
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == PERMISSIONS_REQUEST) {
       if (allPermissionsGranted(grantResults)) {
@@ -526,17 +518,14 @@ public abstract class CameraActivity extends AppCompatActivity
         requestPermission();
       }
     }
-    Log.e("race", "13");
   }
 
   private static boolean allPermissionsGranted(final int[] grantResults) {
-    Log.e("race", "14");
     for (int result : grantResults) {
       if (result != PackageManager.PERMISSION_GRANTED) {
         return false;
       }
     }
-    Log.e("race", "15");
     return true;
   }
 
@@ -573,12 +562,9 @@ public abstract class CameraActivity extends AppCompatActivity
   }
 
   private String chooseCamera() {
-    Log.e("race", "16");
     final CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
     try {
-      Log.e("race", "17");
       for (final String cameraId : manager.getCameraIdList()) {
-        Log.e("race", "18");
         final CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
 
         // We don't use a front facing camera in this sample.
@@ -590,7 +576,6 @@ public abstract class CameraActivity extends AppCompatActivity
         if (map == null) {
           continue;
         }
-        Log.e("race", "19");
 
         // Fallback to camera1 API for internal cameras that don't have full support.
         // This should help with legacy situations where using the camera2 API causes
@@ -601,13 +586,11 @@ public abstract class CameraActivity extends AppCompatActivity
                     characteristics, CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL);
         LOGGER.i("Camera API lv2?: %s", useCamera2API);
         if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
-          Log.e("race", "20");
           return cameraId;
         }
 
       }
     } catch (CameraAccessException e) {
-      Log.e("race", "5");
       LOGGER.e(e, "Not allowed to access camera");
     }
     return null;

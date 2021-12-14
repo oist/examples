@@ -346,7 +346,6 @@ public class CameraConnectionFragment extends Fragment {
         textureView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
       }
     } catch (final CameraAccessException e) {
-      Log.e("race", "1");
       LOGGER.e(e, "Exception!");
     } catch (final NullPointerException e) {
       // Currently an NPE is thrown when the Camera2API is used but not supported on the
@@ -371,7 +370,6 @@ public class CameraConnectionFragment extends Fragment {
       }
       manager.openCamera(cameraId, stateCallback, backgroundHandler);
     } catch (final CameraAccessException e) {
-      Log.e("race", "2");
       LOGGER.e(e, "Exception!");
     } catch (final InterruptedException e) {
       throw new RuntimeException("Interrupted while trying to lock camera opening.", e);
@@ -474,20 +472,17 @@ public class CameraConnectionFragment extends Fragment {
                 captureSession.setRepeatingRequest(
                     previewRequest, captureCallback, backgroundHandler);
               } catch (final CameraAccessException e) {
-                Log.e("race", "3");
                 LOGGER.e(e, "Exception!");
               }
             }
 
             @Override
             public void onConfigureFailed(final CameraCaptureSession cameraCaptureSession) {
-              Log.e("race", "config failed");
               showToast("Failed");
             }
           },
           null);
     } catch (final CameraAccessException e) {
-      Log.e("race", "4");
       LOGGER.e(e, "Exception!");
     }
   }
