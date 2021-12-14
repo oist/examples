@@ -71,7 +71,7 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private ExponentialMovingAverage coilVoltageLP = new ExponentialMovingAverage(0.1f);
 
     private boolean stalledShutdown = false;
-    private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
+    private int maxSearchSameSpeedCnt = 5; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
     private int searchSameSpeedCnt = 0;
 
     public void setStuckDetector(StuckDetector stuckDetector) {

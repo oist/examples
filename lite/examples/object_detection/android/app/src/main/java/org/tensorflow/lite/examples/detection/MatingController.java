@@ -84,7 +84,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private int randomSign = rand.nextBoolean() ? 1 : -1;
     private int fleeBackupTime = 1000; // Milliseconds to backup
     private int randTurnTime = 3000; // Milliseconds to turn in a random direction after dismounting
-    private int maxSearchSameSpeedCnt = 20; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
+    private int maxSearchSameSpeedCnt = 5; // Number of loops to search using same wheel speeds. Prevents fast jerky movement that makes it hard to detect pucks. Multiple by time step (100 ms here to get total time)
     private int searchSameSpeedCnt = 0;
     private float phi = 0;
     private float p_phi = 0.25f;
