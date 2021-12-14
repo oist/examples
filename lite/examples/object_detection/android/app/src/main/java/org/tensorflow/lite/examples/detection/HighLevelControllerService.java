@@ -376,6 +376,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     public void onBatteryVoltageUpdate(double voltage, long timestamp) {
         this.batteryVoltage = batteryVoltageLP.average((float) voltage);
 //        Log.v("HighLevel", "Batt: " +  batteryVoltage);
+        cameraActivity.updateBatteryIcon(voltage);
     }
 
     @Override

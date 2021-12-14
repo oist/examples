@@ -87,4 +87,5 @@ dependencies {
 
     implementation 'jp.oist:abcvlib:0.7.9'
     implementation 'org.apache.commons:commons-math3:3.6.1'
+    implementation 'eo.view:batterymeter:2.0.0'
 }

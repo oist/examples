@@ -64,6 +64,7 @@ import java.nio.ByteBuffer;
 import org.tensorflow.lite.examples.detection.env.ImageUtils;
 import org.tensorflow.lite.examples.detection.env.Logger;
 
+import eo.view.batterymeter.BatteryMeterView;
 import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
 import jp.oist.abcvlib.util.QRCode;
 import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
@@ -132,6 +133,7 @@ public abstract class CameraActivity extends AppCompatActivity
   protected ScheduledExecutorServiceWithException controllerExecutor;
   protected ScheduledExecutorServiceWithException qrCodeDetectionExecutor;
   private ImageView face;
+  private BatteryMeterView batteryIcon;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
@@ -167,6 +169,7 @@ public abstract class CameraActivity extends AppCompatActivity
     gestureLayout = findViewById(R.id.gesture_layout);
     sheetBehavior = BottomSheetBehavior.from(bottomSheetLayout);
     bottomSheetArrowImageView = findViewById(R.id.bottom_sheet_arrow);
+    batteryIcon = findViewById(R.id.batteryIcon);
 
     ViewTreeObserver vto = gestureLayout.getViewTreeObserver();
     vto.addOnGlobalLayoutListener(
@@ -231,6 +234,11 @@ public abstract class CameraActivity extends AppCompatActivity
 
   public void onConfirmedMoved(){
     highLevelControllerService.restore();
+  }
+
+  public void updateBatteryIcon(double voltage){
+    int percent = (int) Math.round(100 * (voltage / 3.3));
+    batteryIcon.setChargeLevel(percent);
   }
 
   public synchronized void turnOnQRCode(String geneStr){
