@@ -102,16 +102,11 @@ public abstract class CameraActivity extends AppCompatActivity
   private SwitchCompat apiSwitchCompat;
   private TextView threadsTextView;
   protected HighLevelControllerService highLevelControllerService;
-  private boolean mBound = false;
-  private Slider wheelBiasSlider;
-  private Slider minMatingVoltageSlider;
-  private Slider maxChargingVoltageSlider;
 
   private QRCode qrCode;
 
-  private RangeSlider thresholdSlider;
   /** Defines callbacks for service binding, passed to bindService() */
-  private ServiceConnection connection = new ServiceConnection() {
+  private final ServiceConnection connection = new ServiceConnection() {
 
     @Override
     public void onServiceConnected(ComponentName className,
@@ -119,40 +114,21 @@ public abstract class CameraActivity extends AppCompatActivity
       // We've bound to LocalService, cast the IBinder and get LocalService instance
       HighLevelControllerService.LocalBinder binder = (HighLevelControllerService.LocalBinder) service;
       highLevelControllerService = binder.getService();
-      mBound = true;
       highLevelControllerService.setQRCodePublisher(CameraActivity.this);
       highLevelControllerService.setCameraActivity(CameraActivity.this);
-      wheelBiasSlider = findViewById(R.id.wheelSlider);
-      wheelBiasSlider.addOnChangeListener(new Slider.OnChangeListener() {
-        @Override
-        public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
-          highLevelControllerService.onWheelBiasChange(value);
-        }
-      });
-      minMatingVoltageSlider = findViewById(R.id.minMatingVoltageSlider);
-      minMatingVoltageSlider.addOnChangeListener(new Slider.OnChangeListener() {
-        @Override
-        public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
-          highLevelControllerService.onMinMatingVoltageSliderChange(value);
-        }
-      });
-      maxChargingVoltageSlider = findViewById(R.id.maxChargingVoltageSlider);
-      maxChargingVoltageSlider.addOnChangeListener(new Slider.OnChangeListener() {
-        @Override
-        public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
-          highLevelControllerService.onMaxChargingVoltageSliderChange(value);
-        }
-      });
+      Slider wheelBiasSlider = findViewById(R.id.wheelSlider);
+      wheelBiasSlider.addOnChangeListener((slider, value, fromUser) -> highLevelControllerService.onWheelBiasChange(value));
+      Slider minMatingVoltageSlider = findViewById(R.id.minMatingVoltageSlider);
+      minMatingVoltageSlider.addOnChangeListener((slider, value, fromUser) -> highLevelControllerService.onMinMatingVoltageSliderChange(value));
+      Slider maxChargingVoltageSlider = findViewById(R.id.maxChargingVoltageSlider);
+      maxChargingVoltageSlider.addOnChangeListener((slider, value, fromUser) -> highLevelControllerService.onMaxChargingVoltageSliderChange(value));
     }
 
     @Override
     public void onServiceDisconnected(ComponentName arg0) {
-      mBound = false;
     }
   };
   private boolean qrCodeOn = false;
-  private HandlerThread handlerThread_controller;
-  private Handler handler_controller;
   protected ScheduledExecutorServiceWithException controllerExecutor;
   protected ScheduledExecutorServiceWithException qrCodeDetectionExecutor;
   private ImageView face;
@@ -202,7 +178,6 @@ public abstract class CameraActivity extends AppCompatActivity
             } else {
               gestureLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
             }
-            //                int width = bottomSheetLayout.getMeasuredWidth();
             int height = gestureLayout.getMeasuredHeight();
 
             sheetBehavior.setPeekHeight(height);
@@ -476,7 +451,6 @@ public abstract class CameraActivity extends AppCompatActivity
     LOGGER.d("onStop " + this);
     super.onStop();
     unbindService(connection);
-    mBound = false;
   }
 
   @Override
