@@ -69,7 +69,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private BatteryData batteryData;
     private QRCodeData qrCodeData;
     private UsageStats usageStats;
-    private boolean shutdown = false;
+    private boolean paused = false;
     private StuckDetector stuckDetector;
     private ScheduledExecutorServiceWithException executor =
             new ScheduledExecutorServiceWithException(1,
@@ -145,7 +145,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     public void zeroController(WheelSide wheelSide) {
     }
 
-    private void shutdown(){
+    private void stalledPause(){
         //todo this should be moved to another method and this only sets a bool. The main control thread should call the rest of this at the end of the loop to ensure controllers aren't restarted in a race condition
         Log.e("StalledShutdown", "3. ShuttingDown");
         if (chargeController != null){
@@ -163,8 +163,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 matingController.stopController();
             }
         }
-        shutdown = true;
+        paused = true;
     }
+
+    public void forcedShutDown(){
+        executor.shutdownNow();
+    }
+
+
 
     @Override
     public void stalledShutdownRequest() {
@@ -185,7 +191,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         // todo need to reset stall counts, stuck bool and free counts to zero in stuckdetector
         stuckDetector.restore();
         this.shutdownRequest = false;
-        this.shutdown = false;
+        this.paused = false;
         getOutputs().getMasterController().addController(chargeController);
         getOutputs().getMasterController().addController(matingController);
     }
@@ -232,7 +238,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     }
 
     public synchronized void selectController(){
-        if (shutdown){
+        if (paused){
             return;
         }
         switch (state){
@@ -280,7 +286,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
         if (shutdownRequest){
             Log.e("StalledShutdown", "2. ShuttingDown At end of HLController");
-            shutdown();
+            stalledPause();
         }
     }
 
@@ -374,7 +380,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         publisherManager.startPublishers();
         Log.d("race", "start publishers end");
 
-        executor.scheduleWithFixedDelay(this, 0, controlLoopTime, TimeUnit.MILLISECONDS);
+        executor.scheduleWithFixedDelay(this, 1000, controlLoopTime, TimeUnit.MILLISECONDS);
 
         // Adds your custom controller to the compounding master controller.
         getOutputs().getMasterController().addController(chargeController);
@@ -388,7 +394,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     public void onBatteryVoltageUpdate(double voltage, long timestamp) {
         this.batteryVoltage = batteryVoltageLP.average((float) voltage);
 //        Log.v("HighLevel", "Batt: " +  batteryVoltage);
-        cameraActivity.updateBatteryIcon(voltage);
     }
 
     @Override

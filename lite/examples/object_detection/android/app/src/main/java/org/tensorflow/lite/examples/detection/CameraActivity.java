@@ -242,6 +242,7 @@ public abstract class CameraActivity extends AppCompatActivity
   }
 
   public void onConfirmed(){
+    highLevelControllerService.forcedShutDown();
     finish();
   }
 
