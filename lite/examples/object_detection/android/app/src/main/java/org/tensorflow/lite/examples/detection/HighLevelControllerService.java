@@ -75,6 +75,9 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
             new ScheduledExecutorServiceWithException(1,
                     new ProcessPriorityThreadFactory(Thread.MAX_PRIORITY,
                             "highLevelController"));
+    private float minBattVoltage = 2.8f;
+    private boolean lowBatt = false;
+
     private enum State {
         CHARGING, MATING
     }
@@ -169,7 +172,12 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
         if (!shutdownRequest){
             shutdownRequest = true;
-            cameraActivity.shutdownDialog();
+            if (lowBatt){
+                cameraActivity.lowBattDialog();
+            }else{
+                // Stall Dialog
+                cameraActivity.shutdownDialog();
+            }
         }
     }
 
@@ -203,6 +211,10 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     public void updateState(){
         Log.d("HighLevel", "state:" + state);
         Log.v("HighLevel", "BattV: " + batteryVoltage);
+        if (batteryVoltage < minBattVoltage){
+            lowBatt = true;
+            stalledShutdownRequest();
+        }
         switch (state){
             case MATING:
                 if (batteryVoltage < minMatingVoltage){

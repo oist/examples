@@ -74,7 +74,7 @@ public abstract class CameraActivity extends AppCompatActivity
         Camera.PreviewCallback,
         CompoundButton.OnCheckedChangeListener,
         View.OnClickListener,
-        QRCodePublisher, StallShutdownDialogFragment.StallDialogListener {
+        QRCodePublisher, StallShutdownDialogFragment.StallDialogListener, LowBattDialogFragment.LowBattDialogListener {
   private static final Logger LOGGER = new Logger();
 
   private static final int PERMISSIONS_REQUEST = 1;
@@ -234,6 +234,15 @@ public abstract class CameraActivity extends AppCompatActivity
 
   public void onConfirmedMoved(){
     highLevelControllerService.restore();
+  }
+
+  public void lowBattDialog(){
+    LowBattDialogFragment lowBattFragment = new LowBattDialogFragment();
+    lowBattFragment.show(getSupportFragmentManager(), "LowBatt");
+  }
+
+  public void onConfirmed(){
+    finish();
   }
 
   public void updateBatteryIcon(double voltage){

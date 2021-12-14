@@ -4,4 +4,6 @@
     <string name="dialog_message">Robot is stuck please move then press OK</string>
     <string name="dialog_title">Robot Stuck!</string>
     <string name="ok">OK</string>
+    <string name="low_batt_dialog_message">Robot battery is too low to continue. Please charge. Application will shutdown now. Please restart after fully charging.</string>
+    <string name="low_batt_dialog_title">Robot Battery Too Low</string>
 </resources>
