@@ -216,6 +216,25 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 }
             }
         }
+        if (target_robot.getBBArea() > 0){
+            float phi = (center - target_robot.getLocation().centerX()) / (320f/2f);
+            //todo hardcoded 320 here. Need to set dynamically somehow
+            float proximity = target_robot.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
+            matingController.setTarget(true, phi, proximity, target_robot.getTitle(), leftWheelMultiplier, rightWheelMultiplier);
+        }else{
+            matingController.setTarget(false, 0, 0, "", leftWheelMultiplier, rightWheelMultiplier);
+        }
+        if (target_puck.getBBArea() > 0){
+            float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
+            Log.d("HighLevelController", "phi: " + phi);
+            Log.d("HighLevelController", "center: " + center);
+            Log.d("HighLevelController", "targetLocation: " + target_robot.getLocation().centerX());
+            //todo hardcoded 320 here. Need to set dynamically somehow
+            float proximity = target_puck.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
+            chargeController.setTarget(true, phi, proximity, leftWheelMultiplier, rightWheelMultiplier);
+        }else{
+            chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
+        }
     }
 
     public void updateState(){
@@ -250,16 +269,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 if (chargeController.isRunning()){
                     chargeController.stopController();
                 }
-                if (matingController.isRunning()){
-                    if (target_robot.getBBArea() > 0){
-                        float phi = (center - target_robot.getLocation().centerX()) / (320f/2f);
-                        //todo hardcoded 320 here. Need to set dynamically somehow
-                        float proximity = target_robot.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
-                        matingController.setTarget(true, phi, proximity, target_robot.getTitle(), leftWheelMultiplier, rightWheelMultiplier);
-                    }else{
-                        matingController.setTarget(false, 0, 0, "", leftWheelMultiplier, rightWheelMultiplier);
-                    }
-                }else{
+                if (!matingController.isRunning()){
                     Log.d("HL_Switch", "starting matingController");
                     matingController.startController();
                 }
@@ -269,21 +279,10 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                 if (matingController.isRunning()){
                     matingController.stopController();
                 }
-                if (chargeController.isRunning()){
-                    if (target_puck.getBBArea() > 0){
-                        float phi = (center - target_puck.getLocation().centerX()) / (320f/2f);
-                        Log.d("HighLevelController", "phi: " + phi);
-                        Log.d("HighLevelController", "center: " + center);
-                        Log.d("HighLevelController", "targetLocation: " + target_robot.getLocation().centerX());
-                        //todo hardcoded 320 here. Need to set dynamically somehow
-                        float proximity = target_puck.getBBArea() / (320 * 320); // Area of bounding box relative to full image.
-                        chargeController.setTarget(true, phi, proximity, leftWheelMultiplier, rightWheelMultiplier);
-                    }else{
-                        chargeController.setTarget(false, 0, 0, leftWheelMultiplier, rightWheelMultiplier);
-                    }
-                }else{
+                if (!chargeController.isRunning()){
                     Log.d("HL_Switch", "starting charge controller");
                     chargeController.startController();
+
                 }
                 chargeController.run();
                 break;
