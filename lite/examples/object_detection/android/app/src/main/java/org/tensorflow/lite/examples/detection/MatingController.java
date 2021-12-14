@@ -27,6 +27,7 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
     private ExponentialMovingAverage batteryVoltageLP = new ExponentialMovingAverage(0.1f);
     private double wheelSpeedL = 0;
     private double wheelSpeedR = 0;
+    private boolean isRunning = false;
 
     public void setStuckDetector(StuckDetector stuckDetector) {
         this.stuckDetector = stuckDetector;
@@ -123,7 +124,6 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         this.usageStats = usageStats;
     }
 
-    @Override
     public void startController() {
         genes.playGenes();
         state = State.SEARCHING;
@@ -131,13 +131,19 @@ public class MatingController extends AbcvlibController implements WheelDataSubs
         stuckDetector.startTimer(15000);
         usageStats.onStateChange("Mating_" + state.name());
         qrCodePublisher.setFace(Face.MATE_SEARCHING);
-        super.startController();
+        this.isRunning = true;
+    }
+
+
+    public void stopController() {
+        genes.stopPlayingGenes();
+        setOutput(0,0);
+        this.isRunning = false;
     }
 
     @Override
-    public void stopController() {
-        genes.stopPlayingGenes();
-        super.stopController();
+    public synchronized boolean isRunning() {
+        return this.isRunning;
     }
 
     @Override

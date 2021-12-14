@@ -30,10 +30,9 @@ import jp.oist.abcvlib.core.inputs.microcontroller.BatteryDataSubscriber;
 import jp.oist.abcvlib.core.inputs.microcontroller.WheelData;
 import jp.oist.abcvlib.core.inputs.phone.ImageData;
 import jp.oist.abcvlib.core.inputs.phone.QRCodeData;
+import jp.oist.abcvlib.util.ProcessPriorityThreadFactory;
+import jp.oist.abcvlib.util.ScheduledExecutorServiceWithException;
 
-import com.google.android.material.slider.RangeSlider;
-import com.google.android.material.slider.BaseOnChangeListener;
-import com.google.android.material.slider.Slider;
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.ChecksumException;
 import com.google.zxing.FormatException;
@@ -44,7 +43,7 @@ import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.QRCodeReader;
 
 public class HighLevelControllerService extends AbcvlibService implements IOReadyListener,
-        BatteryDataSubscriber, LifecycleOwner, StallAwareController {
+        BatteryDataSubscriber, LifecycleOwner, StallAwareController, Runnable {
 
     private LifecycleRegistry lifecycleRegistry;
     private QRCodePublisher qrCodePublisher;
@@ -72,9 +71,15 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     private UsageStats usageStats;
     private boolean shutdown = false;
     private StuckDetector stuckDetector;
+    private ScheduledExecutorServiceWithException executor =
+            new ScheduledExecutorServiceWithException(1,
+                    new ProcessPriorityThreadFactory(Thread.MAX_PRIORITY,
+                            "highLevelController"));
     private enum State {
         CHARGING, MATING
     }
+    private Detector.Recognition target_robot;
+    private Detector.Recognition target_puck;
 
     // Binder given to clients
     private final IBinder binder = new LocalBinder();
@@ -93,7 +98,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     @RequiresApi(api = Build.VERSION_CODES.P)
     @Override
     public void onCreate() {
-
         super.onCreate();
         countDownLatch = new CountDownLatch(1);
         lifecycleRegistry = new LifecycleRegistry(this);
@@ -107,6 +111,12 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
     }
 
     @Override
+    public void run() {
+        updateState();
+        selectController();
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         return binder;
     }
@@ -116,7 +126,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         setIoReadyListener(this);
         return super.onStartCommand(intent, flags, startId);
     }
-    
+
     @NonNull
     @Override
     public Lifecycle getLifecycle() {
@@ -174,8 +184,8 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
 
     /** method for clients */
     public synchronized void onNewResults(List<Detector.Recognition> results) {
-        Detector.Recognition target_puck = new Detector.Recognition(null, "puck_red", 0.0f, new RectF(0,0,0,0));
-        Detector.Recognition target_robot = new Detector.Recognition(null, "robot_front", 0.0f, new RectF(0,0,0,0));;
+        target_puck = new Detector.Recognition(null, "puck_red", 0.0f, new RectF(0,0,0,0));
+        target_robot = new Detector.Recognition(null, "robot_front", 0.0f, new RectF(0,0,0,0));;
         for (final Detector.Recognition result : results) {
             if (result.getConfidence() > minimumConfidence){
                 float boundingBoxArea = result.getLocation().height() * result.getLocation().height();
@@ -187,10 +197,6 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     target_puck = result;
                 }
             }
-        }
-        if (chargeController != null && matingController != null){
-            updateState();
-            sendControl(target_robot, target_puck);
         }
     }
 
@@ -213,16 +219,14 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         }
     }
 
-    public synchronized void sendControl(Detector.Recognition target_robot, Detector.Recognition target_puck){
+    public synchronized void selectController(){
         if (shutdown){
             return;
         }
         switch (state){
             case MATING:
                 if (chargeController.isRunning()){
-                    Log.d("HL_Switch", "Turning off chargingController");
                     chargeController.stopController();
-//                    getOutputs().getMasterController().removeController(chargeController);
                 }
                 if (matingController.isRunning()){
                     if (target_robot.getBBArea() > 0){
@@ -235,16 +239,13 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }
                 }else{
                     Log.d("HL_Switch", "starting matingController");
-                    matingController.setStallDelay(controlLoopTime);
                     matingController.startController();
-//                    getOutputs().getMasterController().addController(matingController);
                 }
+                matingController.run();
                 break;
             case CHARGING:
                 if (matingController.isRunning()){
-                    Log.d("HL_Switch", "Turning off matingController");
                     matingController.stopController();
-//                    getOutputs().getMasterController().removeController(matingController);
                 }
                 if (chargeController.isRunning()){
                     if (target_puck.getBBArea() > 0){
@@ -260,10 +261,9 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
                     }
                 }else{
                     Log.d("HL_Switch", "starting charge controller");
-                    chargeController.setStallDelay(controlLoopTime);
                     chargeController.startController();
-//                    getOutputs().getMasterController().addController(chargeController);
                 }
+                chargeController.run();
                 break;
         }
         if (shutdownRequest){
@@ -334,6 +334,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         chargeController.setQrCodePublisher(qrCodePublisher);
         chargeController.setUsageStats(usageStats);
         chargeController.setStuckDetector(stuckDetector);
+        chargeController.setStallDelay(controlLoopTime);
 
         matingController = (MatingController) new MatingController().setInitDelay(0)
                 .setName("matingController").setThreadCount(1)
@@ -344,6 +345,7 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         matingController.setQrCodePublisher(qrCodePublisher);
         matingController.setUsageStats(usageStats);
         matingController.setStuckDetector(stuckDetector);
+        matingController.setStallDelay(controlLoopTime);
 
         publisherManager = new PublisherManager();
         wheelData = new WheelData.Builder(this, publisherManager, abcvlibLooper).build();
@@ -359,6 +361,8 @@ public class HighLevelControllerService extends AbcvlibService implements IORead
         Log.d("race", "start publishers start");
         publisherManager.startPublishers();
         Log.d("race", "start publishers end");
+
+        executor.scheduleWithFixedDelay(this, 0, controlLoopTime, TimeUnit.MILLISECONDS);
 
         // Adds your custom controller to the compounding master controller.
         getOutputs().getMasterController().addController(chargeController);

@@ -24,6 +24,8 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
     private StuckDetector stuckDetector;
     private double wheelSpeedL = 0;
     private double wheelSpeedR = 0;
+    private boolean isRunning = false;
+
     private enum State {
         SEARCHING, MOUNTING, CHARGING, DISMOUNTING, DECIDING
     }
@@ -92,14 +94,23 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
         }
     }
 
-    @Override
     public void startController() {
         state = State.SEARCHING;
         flipToArms();
         stuckDetector.startTimer(15000);
         usageStats.onStateChange("Charging_" + state.name());
         qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
-        super.startController();
+        this.isRunning = true;
+    }
+
+    public void stopController() {
+        setOutput(0, 0);
+        this.isRunning = false;
+    }
+
+    @Override
+    public synchronized boolean isRunning() {
+        return this.isRunning;
     }
 
     public void run(){
@@ -183,7 +194,6 @@ public class ChargeController extends AbcvlibController implements WheelDataSubs
                     dismount();
                     flipToArms();
                     state = State.SEARCHING;
-                    flipToArms();
                     stuckDetector.startTimer(15000);
                     usageStats.onStateChange("Charging_" + state.name());
                     qrCodePublisher.setFace(Face.CHARGING_SEARCHING);
