@@ -119,10 +119,13 @@ public abstract class CameraActivity extends AppCompatActivity
       highLevelControllerService.setCameraActivity(CameraActivity.this);
       Slider wheelBiasSlider = findViewById(R.id.wheelSlider);
       wheelBiasSlider.addOnChangeListener((slider, value, fromUser) -> highLevelControllerService.onWheelBiasChange(value));
+      highLevelControllerService.onWheelBiasChange(wheelBiasSlider.getValue());
       Slider minMatingVoltageSlider = findViewById(R.id.minMatingVoltageSlider);
       minMatingVoltageSlider.addOnChangeListener((slider, value, fromUser) -> highLevelControllerService.onMinMatingVoltageSliderChange(value));
+      highLevelControllerService.onMinMatingVoltageSliderChange(minMatingVoltageSlider.getValue());
       Slider maxChargingVoltageSlider = findViewById(R.id.maxChargingVoltageSlider);
       maxChargingVoltageSlider.addOnChangeListener((slider, value, fromUser) -> highLevelControllerService.onMaxChargingVoltageSliderChange(value));
+      highLevelControllerService.onMaxChargingVoltageSliderChange(maxChargingVoltageSlider.getValue());
     }
 
     @Override
