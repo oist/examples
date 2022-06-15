@@ -15,7 +15,7 @@ repositories {
 android {
     compileSdkVersion 30
     defaultConfig {
-        applicationId "org.tensorflow.lite.examples.detection"
+        applicationId "jp.oist.abcvlib.puckmount"
         minSdkVersion 24
         targetSdkVersion 30
         compileSdkVersion 31
